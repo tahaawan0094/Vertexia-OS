@@ -24,6 +24,7 @@ import {
   Bell,
   Settings,
   ShieldAlert,
+  ShieldCheck,
   ChevronLeft,
   ChevronRight,
   Menu,
@@ -80,6 +81,7 @@ const navigationGroups: NavGroup[] = [
   {
     group: "SYSTEM",
     items: [
+      { title: "User & Role Management", href: "/admin/users", icon: ShieldCheck },
       { title: "Knowledge Base", href: "/knowledge-base", icon: BookOpen },
       { title: "Notifications", href: "/notifications", icon: Bell },
       { title: "Settings", href: "/settings", icon: Settings },

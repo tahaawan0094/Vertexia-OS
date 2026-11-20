@@ -117,13 +117,28 @@ export async function requireAuth() {
 
 export async function requirePermission(permissionCode: string) {
   const user = await requireAuth();
-  if (user.roleCode === "FOUNDER") {
-    return user; // Founder has universal permission
+  if (user.roleCode === "FOUNDER" || user.roleCode === "ADMIN") {
+    return user; // Founder and Admin have universal permissions
   }
 
   if (!user.permissions.includes(permissionCode)) {
     throw new Error(`FORBIDDEN: Missing permission ${permissionCode}`);
   }
 
+  return user;
+}
+
+export function isAdminUser(user: { roleCode?: string; role?: string } | null | undefined): boolean {
+  if (!user) return false;
+  const code = (user.roleCode || "").toUpperCase();
+  const name = (user.role || "").toUpperCase();
+  return code === "ADMIN" || code === "FOUNDER" || name === "ADMIN" || name === "FOUNDER";
+}
+
+export async function requireAdmin() {
+  const user = await requireAuth();
+  if (!isAdminUser(user)) {
+    throw new Error("FORBIDDEN: Admin access required");
+  }
   return user;
 }
