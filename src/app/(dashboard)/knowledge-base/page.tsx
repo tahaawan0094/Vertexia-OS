@@ -10,6 +10,7 @@ import {
   User,
   Calendar,
   Layers,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/input";
@@ -75,6 +76,27 @@ export default function KnowledgeBasePage() {
       console.error("Failed to create article:", err);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeleteArticle = async (id: string, artTitle: string) => {
+    if (!window.confirm(`Are you sure you want to permanently delete article "${artTitle}"?`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/knowledge/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to delete article");
+        return;
+      }
+      if (selectedArticle?.id === id) {
+        setSelectedArticle(null);
+      }
+      fetchArticles();
+    } catch (err: any) {
+      alert("Error deleting article: " + err.message);
     }
   };
 
@@ -147,18 +169,30 @@ export default function KnowledgeBasePage() {
               <div className="md:col-span-2 space-y-4">
                 {selectedArticle ? (
                   <div className="space-y-4">
-                    <div className="pb-4 border-b border-slate-100">
-                      <span className="text-xs font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-700 uppercase">
-                        {selectedArticle.category}
-                      </span>
-                      <h2 className="text-xl font-bold font-heading text-slate-900 mt-2">
-                        {selectedArticle.title}
-                      </h2>
-                      <div className="text-xs text-slate-400 flex items-center gap-3 mt-1">
-                        <span>Author: {selectedArticle.author}</span>
-                        <span>•</span>
-                        <span>Last updated: {formatDate(selectedArticle.updatedAt)}</span>
+                    <div className="pb-4 border-b border-slate-100 flex items-start justify-between gap-4">
+                      <div>
+                        <span className="text-xs font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-700 uppercase">
+                          {selectedArticle.category}
+                        </span>
+                        <h2 className="text-xl font-bold font-heading text-slate-900 mt-2">
+                          {selectedArticle.title}
+                        </h2>
+                        <div className="text-xs text-slate-400 flex items-center gap-3 mt-1">
+                          <span>Author: {selectedArticle.author}</span>
+                          <span>•</span>
+                          <span>Last updated: {formatDate(selectedArticle.updatedAt)}</span>
+                        </div>
                       </div>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDeleteArticle(selectedArticle.id, selectedArticle.title)}
+                        className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 hover:border-rose-300"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 mr-1" />
+                        <span>Delete Article</span>
+                      </Button>
                     </div>
 
                     <div className="prose prose-slate max-w-none text-xs leading-relaxed text-slate-700 whitespace-pre-wrap font-sans">

@@ -15,6 +15,7 @@ import {
   HelpCircle,
   Clock,
   ArrowRight,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/input";
@@ -115,6 +116,24 @@ export default function InstallationsPage() {
       setFormError(err.message);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeleteInstallation = async (id: string, code: string) => {
+    if (!window.confirm(`Are you sure you want to permanently delete installation "${code}"? This will also remove the license key and cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/installations/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to delete installation");
+        return;
+      }
+      fetchInstallations();
+    } catch (err: any) {
+      alert("Error deleting installation: " + err.message);
     }
   };
 
@@ -261,12 +280,22 @@ export default function InstallationsPage() {
                         <StatusBadge status={ins.status} />
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <Link
-                          href={`/installations/${ins.id}`}
-                          className="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline"
-                        >
-                          View →
-                        </Link>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteInstallation(ins.id, ins.installCode)}
+                            className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded transition-colors"
+                            title={`Delete ${ins.installCode}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                          <Link
+                            href={`/installations/${ins.id}`}
+                            className="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+                          >
+                            View →
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ))}

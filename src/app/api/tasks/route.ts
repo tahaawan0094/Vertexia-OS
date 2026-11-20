@@ -109,3 +109,34 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "Failed to update task" }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+    if (!id) return NextResponse.json({ error: "Task ID required" }, { status: 400 });
+
+    const task = await prisma.task.findUnique({ where: { id } });
+    if (!task) return NextResponse.json({ error: "Task not found" }, { status: 404 });
+
+    await prisma.taskChecklist.deleteMany({ where: { taskId: id } });
+    await prisma.taskComment.deleteMany({ where: { taskId: id } });
+    await prisma.task.delete({ where: { id } });
+
+    await logActivity({
+      userId: user.id,
+      userName: user.name,
+      module: "TASK",
+      event: "TASK_DELETED",
+      recordId: id,
+      description: `Deleted task ${task.taskCode}: "${task.title}".`,
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    return NextResponse.json({ error: "Failed to delete task" }, { status: 500 });
+  }
+}

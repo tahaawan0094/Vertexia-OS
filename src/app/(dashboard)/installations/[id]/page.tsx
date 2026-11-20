@@ -16,6 +16,7 @@ import {
   RefreshCw,
   ArrowRight,
   ExternalLink,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -101,6 +102,25 @@ export default function InstallationDetailPage() {
     }
   };
 
+  const handleDeleteInstallation = async () => {
+    if (!installation) return;
+    if (!window.confirm(`Are you sure you want to permanently delete installation "${installation.installCode}"? This will also remove the license key and cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/installations/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to delete installation");
+        return;
+      }
+      router.push("/installations");
+    } catch (err: any) {
+      alert("Error deleting installation: " + err.message);
+    }
+  };
+
   if (loading) {
     return <div className="py-20 text-center text-xs text-slate-400">Loading installation records...</div>;
   }
@@ -140,6 +160,16 @@ export default function InstallationDetailPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleDeleteInstallation}
+            className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 hover:border-rose-300"
+          >
+            <Trash2 className="w-3.5 h-3.5 mr-1" />
+            <span>Delete</span>
+          </Button>
+
           {installation.license?.type !== "LIFETIME" && (
             <Button size="sm" variant="outline" onClick={() => setRenewModalOpen(true)}>
               <RefreshCw className="w-3.5 h-3.5 mr-1" />

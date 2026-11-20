@@ -79,7 +79,47 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   }
 }
 
-// Add feature, version, or pricing plan
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { id } = await params;
+    const existing = await prisma.product.findUnique({
+      where: { id },
+      include: { installations: true },
+    });
+
+    if (!existing) return NextResponse.json({ error: "Product not found" }, { status: 404 });
+
+    if (existing.installations.length > 0) {
+      return NextResponse.json(
+        { error: `Cannot delete ${existing.name}: It has ${existing.installations.length} active installation(s). Reassign or delete the installations first.` },
+        { status: 400 }
+      );
+    }
+
+    await prisma.productFeature.deleteMany({ where: { productId: id } });
+    await prisma.productVersion.deleteMany({ where: { productId: id } });
+    await prisma.pricingPlan.deleteMany({ where: { productId: id } });
+    await prisma.product.delete({ where: { id } });
+
+    await logActivity({
+      userId: user.id,
+      userName: user.name,
+      module: "SYSTEM",
+      event: "PRODUCT_DELETED",
+      recordId: id,
+      description: `Deleted product "${existing.name}".`,
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    console.error("DELETE /api/products/[id] error:", err);
+    return NextResponse.json({ error: "Failed to delete product" }, { status: 500 });
+  }
+}
+
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getCurrentUser();
@@ -109,7 +149,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           status: data.status || "STABLE",
         },
       });
-      // Optionally update currentVersion on product
       await prisma.product.update({
         where: { id },
         data: { currentVersion: data.versionNumber },

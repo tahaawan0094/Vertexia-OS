@@ -15,6 +15,7 @@ import {
   Send,
   Building2,
   Lock,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -118,6 +119,25 @@ export default function TicketDetailPage() {
     }
   };
 
+  const handleDeleteTicket = async () => {
+    if (!ticket) return;
+    if (!window.confirm(`Are you sure you want to permanently delete ticket ${ticket.ticketCode}? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/support/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to delete ticket");
+        return;
+      }
+      router.push("/support");
+    } catch (err: any) {
+      alert("Error deleting ticket: " + err.message);
+    }
+  };
+
   if (loading) {
     return <div className="py-20 text-center text-xs text-slate-400">Loading support conversation...</div>;
   }
@@ -158,6 +178,16 @@ export default function TicketDetailPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleDeleteTicket}
+            className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 hover:border-rose-300"
+          >
+            <Trash2 className="w-3.5 h-3.5 mr-1" />
+            <span>Delete</span>
+          </Button>
+
           {ticket.status !== "RESOLVED" && ticket.status !== "CLOSED" && (
             <Button size="sm" onClick={() => setResolveModalOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white">
               <CheckCircle2 className="w-3.5 h-3.5 mr-1" />

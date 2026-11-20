@@ -140,6 +140,24 @@ export default function InvoicesPage() {
     }
   };
 
+  const handleDeleteInvoice = async (id: string, num: string) => {
+    if (!window.confirm(`Are you sure you want to permanently delete invoice ${num}? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/finance/invoices/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to delete invoice");
+        return;
+      }
+      fetchInvoices();
+    } catch (err: any) {
+      alert("Error deleting invoice: " + err.message);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -254,12 +272,22 @@ export default function InvoicesPage() {
                           <StatusBadge status={inv.status} />
                         </td>
                         <td className="py-3 px-4 text-right">
-                          <Link
-                            href={`/finance/invoices/${inv.id}`}
-                            className="text-xs font-semibold text-blue-600 hover:underline"
-                          >
-                            Manage →
-                          </Link>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteInvoice(inv.id, inv.invoiceNumber)}
+                              className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded transition-colors"
+                              title={`Delete ${inv.invoiceNumber}`}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                            <Link
+                              href={`/finance/invoices/${inv.id}`}
+                              className="text-xs font-semibold text-blue-600 hover:underline"
+                            >
+                              Manage →
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     );

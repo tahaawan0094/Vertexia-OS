@@ -106,3 +106,23 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "Failed to update follow-up" }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+    if (!id) return NextResponse.json({ error: "Followup ID required" }, { status: 400 });
+
+    const followup = await prisma.followup.findUnique({ where: { id } });
+    if (!followup) return NextResponse.json({ error: "Follow-up not found" }, { status: 404 });
+
+    await prisma.followup.delete({ where: { id } });
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    return NextResponse.json({ error: "Failed to delete follow-up" }, { status: 500 });
+  }
+}

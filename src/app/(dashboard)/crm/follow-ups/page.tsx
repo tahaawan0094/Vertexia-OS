@@ -12,6 +12,7 @@ import {
   MessageSquare,
   ArrowRight,
   ExternalLink,
+  Trash2,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,24 @@ export default function FollowUpsPage() {
       }
     } catch (err) {
       console.error("Failed to mark completed:", err);
+    }
+  };
+
+  const handleDeleteFollowup = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this scheduled follow-up?")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/crm/followups?id=${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to delete follow-up");
+        return;
+      }
+      fetchFollowups();
+    } catch (err: any) {
+      alert("Error deleting follow-up: " + err.message);
     }
   };
 
@@ -172,6 +191,14 @@ export default function FollowUpsPage() {
                         <span>Open {isLead ? "Lead" : "Client"}</span>
                         <ArrowRight className="w-3 h-3" />
                       </Link>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteFollowup(f.id)}
+                        className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded transition-colors"
+                        title="Delete follow-up"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
                 );

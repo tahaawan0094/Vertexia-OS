@@ -20,6 +20,7 @@ import {
   Clock,
   AlertCircle,
   FolderKanban,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/input";
@@ -149,6 +150,25 @@ export default function ProductDetailPage() {
     }
   };
 
+  const handleDeleteProduct = async () => {
+    if (!product) return;
+    if (!window.confirm(`Are you sure you want to permanently delete "${product.name}"? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to delete product");
+        return;
+      }
+      router.push("/products");
+    } catch (err: any) {
+      alert("Error deleting product: " + err.message);
+    }
+  };
+
   if (loading) {
     return <div className="py-20 text-center text-xs text-slate-400">Loading product profile...</div>;
   }
@@ -183,16 +203,29 @@ export default function ProductDetailPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs">
-          <div>
-            <span className="text-[10px] uppercase font-bold text-slate-400 block">Version</span>
-            <span className="font-bold text-slate-800 font-mono">v{product.currentVersion}</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs">
+            <div>
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Version</span>
+              <span className="font-bold text-slate-800 font-mono">v{product.currentVersion}</span>
+            </div>
+            <div className="w-[1px] h-6 bg-slate-200" />
+            <div>
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Installations</span>
+              <span className="font-bold text-purple-700">{product.installations?.length || 0} Deployed</span>
+            </div>
           </div>
-          <div className="w-[1px] h-6 bg-slate-200" />
-          <div>
-            <span className="text-[10px] uppercase font-bold text-slate-400 block">Installations</span>
-            <span className="font-bold text-purple-700">{product.installations?.length || 0} Deployed</span>
-          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleDeleteProduct}
+            className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 hover:border-rose-300"
+          >
+            <Trash2 className="w-3.5 h-3.5 mr-1" />
+            Delete Product
+          </Button>
         </div>
       </div>
 

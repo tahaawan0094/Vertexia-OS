@@ -23,6 +23,7 @@ import {
   CheckCircle2,
   ArrowRight,
   UserCheck,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/input";
@@ -162,6 +163,24 @@ export default function LeadsPage() {
       setFormError(err.message);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteLead = async (id: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to delete lead "${name}"? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/crm/leads/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to delete lead");
+        return;
+      }
+      fetchLeads();
+    } catch (err: any) {
+      alert("Error deleting lead: " + err.message);
     }
   };
 
@@ -417,12 +436,22 @@ export default function LeadsPage() {
                           {formatDate(lead.nextFollowUpAt)}
                         </td>
                         <td className="py-3 px-4 text-right">
-                          <Link
-                            href={`/crm/leads/${lead.id}`}
-                            className="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline"
-                          >
-                            Open →
-                          </Link>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteLead(lead.id, lead.businessName)}
+                              className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded transition-colors"
+                              title={`Delete ${lead.businessName}`}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                            <Link
+                              href={`/crm/leads/${lead.id}`}
+                              className="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              Open →
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -498,12 +527,25 @@ export default function LeadsPage() {
                           <span className="font-bold text-slate-800">
                             {formatPKR(lead.estimatedValue)}
                           </span>
-                          <Link
-                            href={`/crm/leads/${lead.id}`}
-                            className="text-[11px] text-blue-600 font-semibold group-hover:underline"
-                          >
-                            View
-                          </Link>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteLead(lead.id, lead.businessName);
+                              }}
+                              className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded"
+                              title="Delete Lead"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                            <Link
+                              href={`/crm/leads/${lead.id}`}
+                              className="text-[11px] text-blue-600 font-semibold group-hover:underline"
+                            >
+                              View
+                            </Link>
+                          </div>
                         </div>
                       </div>
                     ))

@@ -12,6 +12,7 @@ import {
   Building2,
   AlertCircle,
   CreditCard,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/input";
@@ -94,6 +95,24 @@ export default function ExpensesPage() {
     }
   };
 
+  const handleDeleteExpense = async (id: string, title: string) => {
+    if (!window.confirm(`Are you sure you want to delete expense "${title}"? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/finance/expenses/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to delete expense");
+        return;
+      }
+      fetchExpenses();
+    } catch (err: any) {
+      alert("Error deleting expense: " + err.message);
+    }
+  };
+
   const totalExpenseAmount = expenses.reduce((acc, e) => acc + e.amount, 0);
 
   return (
@@ -163,6 +182,7 @@ export default function ExpensesPage() {
                     <th className="py-3 px-4">Payment Method</th>
                     <th className="py-3 px-4">Date</th>
                     <th className="py-3 px-4 text-right">Amount (PKR)</th>
+                    <th className="py-3 px-4 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-sans">
@@ -185,6 +205,16 @@ export default function ExpensesPage() {
                       <td className="py-3 px-4 text-slate-500">{formatDate(e.date)}</td>
                       <td className="py-3 px-4 text-right font-bold text-amber-700 font-mono">
                         {formatPKR(e.amount)}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteExpense(e.id, e.title)}
+                          className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded transition-colors"
+                          title={`Delete ${e.title}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </td>
                     </tr>
                   ))}

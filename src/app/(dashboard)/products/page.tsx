@@ -14,6 +14,7 @@ import {
   Tag,
   KeyRound,
   FileCode2,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -91,6 +92,24 @@ export default function ProductsPage() {
       setFormError(err.message);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeleteProduct = async (id: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to permanently delete "${name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to delete product");
+        return;
+      }
+      fetchProducts();
+    } catch (err: any) {
+      alert("Error deleting product: " + err.message);
     }
   };
 
@@ -174,12 +193,22 @@ export default function ProductsPage() {
                   <span>Installations: <strong className="text-purple-700">{product.installations?.length || 0}</strong></span>
                 </div>
 
-                <Link
-                  href={`/products/${product.id}`}
-                  className="font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                >
-                  Manage Product <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteProduct(product.id, product.name)}
+                    className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-100/60 rounded transition-colors"
+                    title={`Delete ${product.name}`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                  <Link
+                    href={`/products/${product.id}`}
+                    className="font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                  >
+                    Manage Product <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
               </div>
             </Card>
           ))}

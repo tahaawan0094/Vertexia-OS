@@ -16,6 +16,7 @@ import {
   ArrowRight,
   ShieldCheck,
   Ban,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -143,6 +144,25 @@ export default function InvoiceDetailPage() {
     }
   };
 
+  const handleDeleteInvoice = async () => {
+    if (!invoice) return;
+    if (!window.confirm(`Are you sure you want to permanently delete invoice ${invoice.invoiceNumber}? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/finance/invoices/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to delete invoice");
+        return;
+      }
+      router.push("/finance/invoices");
+    } catch (err: any) {
+      alert("Error deleting invoice: " + err.message);
+    }
+  };
+
   if (loading) {
     return <div className="py-20 text-center text-xs text-slate-400">Loading invoice document...</div>;
   }
@@ -184,6 +204,16 @@ export default function InvoiceDetailPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDeleteInvoice}
+            className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 hover:border-rose-300"
+          >
+            <Trash2 className="w-3.5 h-3.5 mr-1" />
+            <span>Delete</span>
+          </Button>
+
           <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
             <Download className="w-3.5 h-3.5 mr-1" />
             <span>Download Official PDF</span>

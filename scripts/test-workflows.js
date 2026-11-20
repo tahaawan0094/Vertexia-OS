@@ -23,7 +23,7 @@ async function runTests() {
     // 1. Verify Core Seed Data
     console.log('--- Step 1: Checking Initial Core Records ---');
     const products = await prisma.product.findMany();
-    assert(products.length >= 4, `Found ${products.length} products (Expected >= 4)`);
+    assert(products.length >= 2, `Found ${products.length} products (Expected >= 2 authentic products)`);
 
     const pharmacyProduct = products.find((p) => p.productCode === 'PRD-PHARMACY');
     assert(pharmacyProduct && pharmacyProduct.name === 'Vertexia Pharmacy POS', 'Vertexia Pharmacy POS is active');

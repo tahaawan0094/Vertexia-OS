@@ -100,3 +100,34 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "Failed to post message" }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { id } = await params;
+    const ticket = await prisma.ticket.findUnique({
+      where: { id },
+      include: { client: true },
+    });
+    if (!ticket) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
+
+    await prisma.ticketMessage.deleteMany({ where: { ticketId: id } });
+    await prisma.ticket.delete({ where: { id } });
+
+    await logActivity({
+      userId: user.id,
+      userName: user.name,
+      module: "TICKET",
+      event: "TICKET_DELETED",
+      clientId: ticket.clientId,
+      recordId: id,
+      description: `Deleted support ticket ${ticket.ticketCode} (${ticket.title}).`,
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    return NextResponse.json({ error: "Failed to delete ticket" }, { status: 500 });
+  }
+}

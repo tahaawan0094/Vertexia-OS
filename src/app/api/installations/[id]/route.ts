@@ -67,7 +67,6 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       include: { license: true },
     });
 
-    // Handle License Renewal if renewDays passed
     if (renewDays && existing.license) {
       const currentExp = existing.license.expiresAt ? new Date(existing.license.expiresAt) : new Date();
       const baseTime = currentExp > new Date() ? currentExp.getTime() : Date.now();
@@ -110,5 +109,42 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     return NextResponse.json({ success: true, installation: updated });
   } catch (err: any) {
     return NextResponse.json({ error: "Failed to update installation" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { id } = await params;
+    const existing = await prisma.installation.findUnique({
+      where: { id },
+      include: { client: true, license: true },
+    });
+    if (!existing) return NextResponse.json({ error: "Installation not found" }, { status: 404 });
+
+    // Clean up license history and events
+    if (existing.license) {
+      await prisma.licenseHistory.deleteMany({ where: { licenseId: existing.license.id } });
+      await prisma.license.delete({ where: { id: existing.license.id } });
+    }
+    await prisma.installationEvent.deleteMany({ where: { installationId: id } });
+    await prisma.installation.delete({ where: { id } });
+
+    await logActivity({
+      userId: user.id,
+      userName: user.name,
+      module: "INSTALLATION",
+      event: "INSTALLATION_DELETED",
+      clientId: existing.clientId,
+      recordId: id,
+      description: `Deleted installation ${existing.installCode} for ${existing.client.businessName}.`,
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    console.error("DELETE /api/installations/[id] error:", err);
+    return NextResponse.json({ error: "Failed to delete installation" }, { status: 500 });
   }
 }

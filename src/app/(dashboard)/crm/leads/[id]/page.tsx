@@ -135,6 +135,25 @@ export default function LeadDetailPage() {
     }
   };
 
+  const handleDeleteLead = async () => {
+    if (!lead) return;
+    if (!window.confirm(`Are you sure you want to permanently delete lead "${lead.businessName}"? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/crm/leads/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to delete lead");
+        return;
+      }
+      router.push("/crm/leads");
+    } catch (err: any) {
+      alert("Error deleting lead: " + err.message);
+    }
+  };
+
   if (loading) {
     return <div className="py-20 text-center text-xs text-slate-400">Loading lead profile...</div>;
   }
@@ -176,6 +195,17 @@ export default function LeadDetailPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="md"
+            onClick={handleDeleteLead}
+            className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 hover:border-rose-300"
+          >
+            <Trash2 className="w-4 h-4 mr-1" />
+            Delete Lead
+          </Button>
+
           {lead.convertedClientId ? (
             <Link
               href={`/clients/${lead.convertedClientId}`}

@@ -15,6 +15,7 @@ import {
   UserCheck,
   AlertCircle,
   ArrowRight,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/input";
@@ -109,6 +110,24 @@ export default function ClientsPage() {
       setFormError(err.message);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeleteClient = async (id: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to permanently delete client "${name}" and all associated installations, invoices, and tickets? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/clients/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to delete client");
+        return;
+      }
+      fetchClients();
+    } catch (err: any) {
+      alert("Error deleting client: " + err.message);
     }
   };
 
@@ -233,12 +252,22 @@ export default function ClientsPage() {
                         <StatusBadge status={client.status} />
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <Link
-                          href={`/clients/${client.id}`}
-                          className="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline"
-                        >
-                          Workspace →
-                        </Link>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteClient(client.id, client.businessName)}
+                            className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded transition-colors"
+                            title={`Delete ${client.businessName}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                          <Link
+                            href={`/clients/${client.id}`}
+                            className="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+                          >
+                            Workspace →
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ))}

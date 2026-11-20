@@ -62,17 +62,42 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       });
     }
 
-    await logAudit({
-      userId: user.id,
-      action: "UPDATE",
-      entity: "Invoice",
-      entityId: id,
-      oldValues: existing,
-      newValues: updated,
-    });
-
     return NextResponse.json({ success: true, invoice: updated });
   } catch (err: any) {
     return NextResponse.json({ error: "Failed to update invoice" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { id } = await params;
+    const existing = await prisma.invoice.findUnique({
+      where: { id },
+      include: { client: true, allocations: true },
+    });
+    if (!existing) return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+
+    // Clean up items and allocations
+    await prisma.paymentAllocation.deleteMany({ where: { invoiceId: id } });
+    await prisma.invoiceItem.deleteMany({ where: { invoiceId: id } });
+    await prisma.invoice.delete({ where: { id } });
+
+    await logActivity({
+      userId: user.id,
+      userName: user.name,
+      module: "INVOICE",
+      event: "INVOICE_DELETED",
+      clientId: existing.clientId,
+      recordId: id,
+      description: `Deleted invoice ${existing.invoiceNumber} for ${existing.client.businessName}.`,
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    console.error("DELETE invoice error:", err);
+    return NextResponse.json({ error: "Failed to delete invoice" }, { status: 500 });
   }
 }

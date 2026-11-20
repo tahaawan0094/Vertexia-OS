@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   AlertCircle,
   MoreVertical,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/input";
@@ -154,6 +155,42 @@ export default function ProjectsPage() {
     }
   };
 
+  const handleDeleteProject = async (id: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to permanently delete project "${name}" and all its tasks? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/projects/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to delete project");
+        return;
+      }
+      fetchData();
+    } catch (err: any) {
+      alert("Error deleting project: " + err.message);
+    }
+  };
+
+  const handleDeleteTask = async (id: string, title: string) => {
+    if (!window.confirm(`Are you sure you want to delete task "${title}"?`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/tasks?id=${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to delete task");
+        return;
+      }
+      fetchData();
+    } catch (err: any) {
+      alert("Error deleting task: " + err.message);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -266,12 +303,22 @@ export default function ProjectsPage() {
                       <span>Lead: <strong className="text-slate-800">{project.managerName || "Founder"}</strong></span>
                     </div>
 
-                    {project.deadline && (
-                      <span className="flex items-center gap-1 text-[11px] text-slate-400">
-                        <Calendar className="w-3 h-3" />
-                        {formatDate(project.deadline)}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {project.deadline && (
+                        <span className="flex items-center gap-1 text-[11px] text-slate-400">
+                          <Calendar className="w-3 h-3" />
+                          {formatDate(project.deadline)}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteProject(project.id, project.name)}
+                        className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded transition-colors"
+                        title={`Delete ${project.name}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </Card>
               ))}
@@ -336,17 +383,28 @@ export default function ProjectsPage() {
                             {task.assignedTo?.name || "Unassigned"}
                           </span>
 
-                          {/* Quick stage switch */}
-                          <select
-                            value={task.status}
-                            onChange={(e) => handleTaskStageChange(task.id, e.target.value)}
-                            className="text-[10px] py-0.5 px-1 rounded border border-slate-200 bg-slate-50 text-slate-600 font-semibold"
-                          >
-                            <option value="TODO">To Do</option>
-                            <option value="IN_PROGRESS">In Progress</option>
-                            <option value="REVIEW">Review</option>
-                            <option value="DONE">Done</option>
-                          </select>
+                          <div className="flex items-center gap-1.5">
+                            {/* Quick stage switch */}
+                            <select
+                              value={task.status}
+                              onChange={(e) => handleTaskStageChange(task.id, e.target.value)}
+                              className="text-[10px] py-0.5 px-1 rounded border border-slate-200 bg-slate-50 text-slate-600 font-semibold"
+                            >
+                              <option value="TODO">To Do</option>
+                              <option value="IN_PROGRESS">In Progress</option>
+                              <option value="REVIEW">Review</option>
+                              <option value="DONE">Done</option>
+                            </select>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteTask(task.id, task.title)}
+                              className="p-0.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded"
+                              title="Delete Task"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))

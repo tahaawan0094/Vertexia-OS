@@ -15,6 +15,7 @@ import {
   MessageSquare,
   ArrowRight,
   ExternalLink,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/input";
@@ -104,6 +105,24 @@ export default function SupportHelpdeskPage() {
       console.error("Failed to create ticket:", err);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeleteTicket = async (id: string, code: string) => {
+    if (!window.confirm(`Are you sure you want to delete support ticket ${code}? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/support/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to delete ticket");
+        return;
+      }
+      fetchTickets();
+    } catch (err: any) {
+      alert("Error deleting ticket: " + err.message);
     }
   };
 
@@ -254,12 +273,22 @@ export default function SupportHelpdeskPage() {
                         {t.assignedTo?.name || "Unassigned"}
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <Link
-                          href={`/support/${t.id}`}
-                          className="text-xs font-semibold text-blue-600 hover:underline"
-                        >
-                          Resolve →
-                        </Link>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteTicket(t.id, t.ticketCode)}
+                            className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded transition-colors"
+                            title={`Delete ${t.ticketCode}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                          <Link
+                            href={`/support/${t.id}`}
+                            className="text-xs font-semibold text-blue-600 hover:underline"
+                          >
+                            Resolve →
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ))}

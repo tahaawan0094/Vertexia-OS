@@ -22,6 +22,7 @@ import {
   CreditCard,
   DollarSign,
   AlertCircle,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -100,6 +101,25 @@ export default function ClientProfilePage() {
     }
   };
 
+  const handleDeleteClient = async () => {
+    if (!client) return;
+    if (!window.confirm(`Are you sure you want to permanently delete "${client.businessName}" and all associated installations, invoices, and tickets? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/clients/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to delete client");
+        return;
+      }
+      router.push("/clients");
+    } catch (err: any) {
+      alert("Error deleting client: " + err.message);
+    }
+  };
+
   if (loading) {
     return <div className="py-20 text-center text-xs text-slate-400">Loading client workspace...</div>;
   }
@@ -141,22 +161,35 @@ export default function ClientProfilePage() {
           </div>
         </div>
 
-        {/* Financial Snapshot Badges */}
-        <div className="flex items-center gap-3 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-          <div className="text-right">
-            <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Invoiced</span>
-            <span className="font-bold text-xs text-slate-900 font-mono">{formatPKR(client.totalInvoiced)}</span>
+        <div className="flex items-center gap-3">
+          {/* Financial Snapshot Badges */}
+          <div className="flex items-center gap-3 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+            <div className="text-right">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Invoiced</span>
+              <span className="font-bold text-xs text-slate-900 font-mono">{formatPKR(client.totalInvoiced)}</span>
+            </div>
+            <div className="w-[1px] h-6 bg-slate-200" />
+            <div className="text-right">
+              <span className="text-[10px] uppercase font-bold text-emerald-600 block">Cash Received</span>
+              <span className="font-bold text-xs text-emerald-700 font-mono">{formatPKR(client.totalPaid)}</span>
+            </div>
+            <div className="w-[1px] h-6 bg-slate-200" />
+            <div className="text-right">
+              <span className="text-[10px] uppercase font-bold text-rose-500 block">Balance Due</span>
+              <span className="font-bold text-xs text-rose-600 font-mono">{formatPKR(client.balanceDue)}</span>
+            </div>
           </div>
-          <div className="w-[1px] h-6 bg-slate-200" />
-          <div className="text-right">
-            <span className="text-[10px] uppercase font-bold text-emerald-600 block">Cash Received</span>
-            <span className="font-bold text-xs text-emerald-700 font-mono">{formatPKR(client.totalPaid)}</span>
-          </div>
-          <div className="w-[1px] h-6 bg-slate-200" />
-          <div className="text-right">
-            <span className="text-[10px] uppercase font-bold text-rose-500 block">Balance Due</span>
-            <span className="font-bold text-xs text-rose-600 font-mono">{formatPKR(client.balanceDue)}</span>
-          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleDeleteClient}
+            className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 hover:border-rose-300"
+          >
+            <Trash2 className="w-3.5 h-3.5 mr-1" />
+            Delete Client
+          </Button>
         </div>
       </div>
 
