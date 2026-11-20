@@ -254,15 +254,15 @@ export default function InvoiceDetailPage() {
         </div>
       </div>
 
-      {/* Invoice Document Visual Display — Exact match to the user-provided design */}
-      <div className="max-w-[760px] mx-auto bg-white border-[1.5px] border-black rounded-[14px] p-8 sm:p-14 text-black shadow-lg print:shadow-none print:border-black print:p-8 print:max-w-none print:m-0">
+      {/* Invoice Document Visual Display — Clean, Full-width, Border-free Sheet */}
+      <div className="w-full max-w-5xl mx-auto bg-white rounded-2xl p-6 sm:p-12 lg:p-16 text-black shadow-sm border border-slate-200/80 print:shadow-none print:border-none print:p-6 print:max-w-none print:m-0">
         {/* Header: INVOICE and ArrowDownLeft Icon */}
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-black leading-none">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-black leading-none">
               INVOICE
             </h1>
-            <p className="text-xs sm:text-sm font-bold tracking-wider text-black mt-3 uppercase">
+            <p className="text-xs sm:text-sm font-bold tracking-widest text-black mt-3 uppercase">
               {invoiceNumStr}
             </p>
           </div>
@@ -270,7 +270,7 @@ export default function InvoiceDetailPage() {
           {/* Top-Right Arrow Mark */}
           <div className="pt-1">
             <svg
-              className="w-8 h-8 text-black"
+              className="w-8 h-8 sm:w-10 sm:h-10 text-black"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -285,36 +285,36 @@ export default function InvoiceDetailPage() {
         </div>
 
         {/* Top Divider */}
-        <div className="border-b-[1.5px] border-black my-5" />
+        <div className="border-b-2 border-black my-6 sm:my-8" />
 
         {/* ISSUED TO & Issued Date */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm text-black">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs sm:text-sm text-black">
           <div className="space-y-1">
-            <span className="font-bold text-xs uppercase tracking-wide text-black block mb-2">
+            <span className="font-bold text-xs sm:text-sm uppercase tracking-wider text-black block mb-2.5">
               ISSUED TO :
             </span>
             {invoice.client.contactPerson && (
-              <p className="font-normal text-black">{invoice.client.contactPerson}</p>
+              <p className="font-semibold text-sm sm:text-base text-black">{invoice.client.contactPerson}</p>
             )}
-            <p className="font-normal text-black">{invoice.client.businessName}</p>
+            <p className="font-medium text-sm sm:text-base text-black">{invoice.client.businessName}</p>
             {invoice.client.phone && (
-              <p className="font-normal text-black">{invoice.client.phone}</p>
+              <p className="font-normal text-xs sm:text-sm text-slate-800">{invoice.client.phone}</p>
             )}
             {invoice.client.email && (
-              <p className="font-normal text-black">{invoice.client.email}</p>
+              <p className="font-normal text-xs sm:text-sm text-slate-800">{invoice.client.email}</p>
             )}
           </div>
 
           <div className="flex sm:justify-end items-start gap-3">
             <span className="font-medium text-black">Issued Date</span>
             <span className="text-black">:</span>
-            <span className="font-medium text-black">{formatInvoiceDate(invoice.issueDate)}</span>
+            <span className="font-semibold text-black">{formatInvoiceDate(invoice.issueDate)}</span>
           </div>
         </div>
 
         {/* Main Table: DESCRIPTION & PRICE */}
-        <div className="mt-8">
-          <div className="flex justify-between items-center pb-2.5 border-b-[1.5px] border-black text-xs font-bold uppercase tracking-wider text-black">
+        <div className="mt-10 sm:mt-12">
+          <div className="flex justify-between items-center pb-3 border-b-2 border-black text-xs sm:text-sm font-bold uppercase tracking-wider text-black">
             <span>DESCRIPTION</span>
             <span>PRICE</span>
           </div>
@@ -325,7 +325,7 @@ export default function InvoiceDetailPage() {
               {invoice.items.map((item: any, idx: number) => (
                 <div
                   key={idx}
-                  className="flex justify-between items-center py-3 text-xs sm:text-sm text-black"
+                  className="flex justify-between items-center py-3.5 sm:py-4 text-xs sm:text-sm text-black"
                 >
                   <span className="font-normal">
                     {item.description}
@@ -333,7 +333,7 @@ export default function InvoiceDetailPage() {
                       <span className="text-xs text-slate-500"> ({item.quantity}x)</span>
                     )}
                   </span>
-                  <span className="font-medium">
+                  <span className="font-semibold">
                     PKR {Number(item.amount).toLocaleString()}
                   </span>
                 </div>
@@ -342,16 +342,16 @@ export default function InvoiceDetailPage() {
           )}
 
           {/* Core breakdown matching invoice template: Total Amount, Amount Paid, Remaining Balance */}
-          <div className="space-y-4 py-4 text-xs sm:text-sm text-black">
+          <div className="space-y-4 py-5 text-xs sm:text-sm text-black">
             <div className="flex justify-between items-center">
               <span className="font-normal">Total Amount</span>
-              <span className="font-medium">
+              <span className="font-semibold">
                 PKR {Number(invoice.totalAmount).toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="font-normal">Amount Paid</span>
-              <span className="font-medium">
+              <span className="font-semibold">
                 PKR{" "}
                 {invoice.paidAmount > 0
                   ? Number(invoice.paidAmount).toLocaleString()
@@ -360,7 +360,7 @@ export default function InvoiceDetailPage() {
             </div>
             <div className="flex justify-between items-center">
               <span className="font-normal">Remaining Balance</span>
-              <span className="font-medium">
+              <span className="font-semibold">
                 PKR{" "}
                 {balanceDue > 0
                   ? Number(balanceDue).toLocaleString()
@@ -370,12 +370,12 @@ export default function InvoiceDetailPage() {
           </div>
 
           {/* Divider Line before Total */}
-          <div className="border-b-[1.5px] border-black my-6 sm:my-8" />
+          <div className="border-b-2 border-black my-6 sm:my-8" />
 
           {/* Right-aligned Total with underline */}
           <div className="flex justify-end">
-            <div className="w-56 sm:w-72">
-              <div className="flex justify-between items-center font-bold text-xs sm:text-sm text-black pb-2 border-b-[1.5px] border-black">
+            <div className="w-64 sm:w-80">
+              <div className="flex justify-between items-center font-bold text-sm sm:text-base text-black pb-2.5 border-b-2 border-black">
                 <span>Total</span>
                 <span>PKR {Number(invoice.totalAmount).toLocaleString()}</span>
               </div>
@@ -384,26 +384,26 @@ export default function InvoiceDetailPage() {
         </div>
 
         {/* Footer: TERMS & CONDITIONS + THANK YOU FOR CHOOSING VERTEXIA */}
-        <div className="mt-14 sm:mt-20 space-y-8">
-          <div className="space-y-1 max-w-md">
-            <span className="font-bold text-xs uppercase tracking-wide text-black block">
+        <div className="mt-16 sm:mt-24 space-y-8">
+          <div className="space-y-1.5 max-w-lg">
+            <span className="font-bold text-xs sm:text-sm uppercase tracking-wider text-black block">
               TERMS & CONDITIONS:
             </span>
-            <p className="text-[11px] sm:text-xs text-black font-normal leading-relaxed">
+            <p className="text-xs text-black font-normal leading-relaxed">
               For our Terms, Conditions, and Service Policies, please visit our official Terms of Services page.
             </p>
             <a
               href="https://www.vertexiaagency.com/terms-of-services"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[11px] sm:text-xs text-black underline font-medium block hover:opacity-80"
+              className="text-xs text-black underline font-medium block hover:text-blue-600 pt-0.5"
             >
               www.vertexiaagency.com/terms-of-services
             </a>
           </div>
 
           <div className="flex justify-end">
-            <span className="font-bold text-xs sm:text-sm tracking-wider uppercase text-black">
+            <span className="font-bold text-xs sm:text-sm tracking-widest uppercase text-black">
               THANK YOU FOR CHOOSING VERTEXIA
             </span>
           </div>
