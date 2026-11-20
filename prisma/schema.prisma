@@ -1,0 +1,738 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// 1. AUTHENTICATION & ACCESS CONTROL
+// ==========================================
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  passwordHash String
+  name         String
+  roleId       String
+  role         Role          @relation(fields: [roleId], references: [id])
+  employeeId   String?       @unique
+  employee     Employee?     @relation(fields: [employeeId], references: [id])
+  sessions     Session[]
+  auditLogs    AuditLog[]
+  activities   Activity[]
+  notifications Notification[]
+  createdTasks Task[]        @relation("TaskCreator")
+  assignedTasks Task[]       @relation("TaskAssignee")
+  ticketsAssigned Ticket[]   @relation("TicketAssignee")
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([roleId])
+}
+
+model Role {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  code        String           @unique // "FOUNDER", "CO_FOUNDER", "DEVELOPER", "DESIGNER", "SALES", "SUPPORT", "FINANCE"
+  description String?
+  isSystem    Boolean          @default(false)
+  users       User[]
+  permissions RolePermission[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  module      String           // "DASHBOARD", "CRM", "CLIENTS", "PRODUCTS", "INSTALLATIONS", "FINANCE", "PROJECTS", "SUPPORT", "TEAM", "REPORTS", "SETTINGS"
+  action      String           // "VIEW", "CREATE", "EDIT", "DELETE", "EXPORT", "APPROVE", "MANAGE"
+  code        String           @unique // e.g. "CRM:VIEW", "FINANCE:APPROVE"
+  description String?
+  roles       RolePermission[]
+}
+
+model RolePermission {
+  id           String     @id @default(cuid())
+  roleId       String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ==========================================
+// 2. TEAM & DEPARTMENTS
+// ==========================================
+
+model Department {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  code        String     @unique
+  description String?
+  employees   Employee[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Employee {
+  id           String      @id @default(cuid())
+  employeeCode String      @unique
+  name         String
+  email        String      @unique
+  phone        String?
+  jobTitle     String
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  user         User?
+  status       String      @default("ACTIVE") // "ACTIVE", "LEAVE", "TERMINATED", "RESERVED"
+  joiningDate  DateTime    @default(now())
+  avatarUrl    String?
+  notes        String?
+  leadsAssigned Lead[]     @relation("LeadAssignee")
+  dealsAssigned Deal[]     @relation("DealAssignee")
+  installations Installation[] @relation("InstallationTechnician")
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([departmentId])
+}
+
+// ==========================================
+// 3. CRM & LEADS
+// ==========================================
+
+model LeadSource {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  leads     Lead[]
+  createdAt DateTime @default(now())
+}
+
+model Lead {
+  id                String       @id @default(cuid())
+  leadCode          String       @unique // e.g. "LD-1001"
+  businessName      String
+  contactPerson     String?
+  phone             String?
+  whatsapp          String?
+  email             String?
+  website           String?
+  address           String?
+  city              String?      @default("Karachi")
+  country           String?      @default("Pakistan")
+  businessCategory  String?      // e.g. "Pharmacy", "Automotive Garage", "Restaurant", "Retail Mini Mart"
+  interestedProduct String?      // Product ID or Name
+  sourceId          String?
+  source            LeadSource?  @relation(fields: [sourceId], references: [id])
+  assignedToId      String?
+  assignedTo        Employee?    @relation("LeadAssignee", fields: [assignedToId], references: [id])
+  status            String       @default("NEW") // "NEW", "CONTACTED", "INTERESTED", "DEMO_SCHEDULED", "DEMO_COMPLETED", "NEGOTIATION", "WON", "LOST"
+  priority          String       @default("MEDIUM") // "LOW", "MEDIUM", "HIGH", "URGENT"
+  estimatedValue    Float        @default(0)
+  lastContactedAt   DateTime?
+  nextFollowUpAt    DateTime?
+  convertedClientId String?
+  convertedClient   Client?      @relation(fields: [convertedClientId], references: [id])
+  deals             Deal[]
+  followups         Followup[]
+  activities        Activity[]
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([status])
+  @@index([assignedToId])
+  @@index([sourceId])
+}
+
+model Followup {
+  id          String    @id @default(cuid())
+  leadId      String?
+  lead        Lead?     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  clientId    String?
+  client      Client?   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  scheduledAt DateTime
+  completedAt DateTime?
+  type        String    @default("CALL") // "CALL", "WHATSAPP", "EMAIL", "DEMO", "MEETING", "RENEWAL"
+  notes       String?
+  status      String    @default("PENDING") // "PENDING", "COMPLETED", "CANCELLED", "OVERDUE"
+  assignedTo  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([scheduledAt])
+  @@index([status])
+}
+
+model Deal {
+  id             String        @id @default(cuid())
+  dealCode       String        @unique // e.g. "DL-2001"
+  name           String
+  leadId         String?
+  lead           Lead?         @relation(fields: [leadId], references: [id])
+  clientId       String?
+  client         Client?       @relation(fields: [clientId], references: [id])
+  productId      String?
+  product        Product?      @relation(fields: [productId], references: [id])
+  amount         Float         @default(0)
+  currency       String        @default("PKR")
+  stage          String        @default("PROPOSAL") // "DISCOVERY", "PROPOSAL", "NEGOTIATION", "WON", "LOST"
+  expectedClose  DateTime?
+  actualClose    DateTime?
+  paymentTerms   String?
+  assignedToId   String?
+  assignedTo     Employee?     @relation("DealAssignee", fields: [assignedToId], references: [id])
+  notes          String?
+  dealProducts   DealProduct[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([stage])
+  @@index([leadId])
+  @@index([clientId])
+}
+
+model DealProduct {
+  id        String   @id @default(cuid())
+  dealId    String
+  deal      Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int      @default(1)
+  unitPrice Float
+  total     Float
+}
+
+// ==========================================
+// 4. CLIENTS & BRANCHES
+// ==========================================
+
+model Client {
+  id                 String          @id @default(cuid())
+  clientCode         String          @unique // e.g. "CLI-3001"
+  businessName       String
+  businessCategory   String?
+  contactPerson      String
+  phone              String
+  whatsapp           String?
+  email              String?
+  address            String?
+  city               String          @default("Karachi")
+  country            String          @default("Pakistan")
+  status             String          @default("ACTIVE") // "ACTIVE", "INACTIVE", "SUSPENDED"
+  registrationDate   DateTime        @default(now())
+  notes              String?
+  branches           Branch[]
+  installations      Installation[]
+  invoices           Invoice[]
+  payments           Payment[]
+  tickets            Ticket[]
+  deals              Deal[]
+  convertedFromLeads Lead[]
+  followups          Followup[]
+  activities         Activity[]
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@index([status])
+}
+
+model Branch {
+  id            String         @id @default(cuid())
+  clientId      String
+  client        Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  name          String
+  code          String?
+  address       String?
+  city          String         @default("Karachi")
+  contactPerson String?
+  phone         String?
+  installations Installation[]
+  tickets       Ticket[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([clientId])
+}
+
+// ==========================================
+// 5. PRODUCTS & VERSIONS
+// ==========================================
+
+model ProductCategory {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  products  Product[]
+  createdAt DateTime  @default(now())
+}
+
+model Product {
+  id            String           @id @default(cuid())
+  productCode   String           @unique // e.g. "PRD-PHARMACY"
+  name          String
+  tagline       String?
+  description   String?
+  categoryId    String?
+  category      ProductCategory? @relation(fields: [categoryId], references: [id])
+  status        String           @default("PLANNING") // "PLANNING", "IN_DEVELOPMENT", "TESTING", "ACTIVE", "MAINTENANCE", "DEPRECATED"
+  currentVersion String          @default("1.0.0")
+  releaseDate   DateTime?
+  features      ProductFeature[]
+  versions      ProductVersion[]
+  pricingPlans  PricingPlan[]
+  installations Installation[]
+  deals         Deal[]
+  dealProducts  DealProduct[]
+  tickets       Ticket[]
+  projects      Project[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([status])
+}
+
+model ProductFeature {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  isHighlight Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model ProductVersion {
+  id           String    @id @default(cuid())
+  productId    String
+  product      Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  versionNumber String
+  releaseDate  DateTime  @default(now())
+  releaseNotes String?
+  addedFeatures String?
+  bugFixes     String?
+  status       String    @default("STABLE") // "BETA", "STABLE", "DEPRECATED"
+  createdAt    DateTime  @default(now())
+}
+
+model PricingPlan {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name        String   // "Standard Lifetime", "SaaS Monthly", "Yearly Subscription"
+  licenseType String   // "LIFETIME", "MONTHLY", "YEARLY", "TRIAL", "CUSTOM"
+  price       Float
+  currency    String   @default("PKR")
+  billingCycle String? // "ONE_TIME", "MONTHLY", "YEARLY"
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+// ==========================================
+// 6. INSTALLATIONS & LICENSES
+// ==========================================
+
+model Installation {
+  id             String              @id @default(cuid())
+  installCode    String              @unique // e.g. "INS-5001"
+  clientId       String
+  client         Client              @relation(fields: [clientId], references: [id])
+  branchId       String?
+  branch         Branch?             @relation(fields: [branchId], references: [id])
+  productId      String
+  product        Product             @relation(fields: [productId], references: [id])
+  softwareVersion String             @default("1.0.0")
+  installationDate DateTime          @default(now())
+  technicianId   String?
+  technician     Employee?           @relation("InstallationTechnician", fields: [technicianId], references: [id])
+  status         String              @default("PENDING") // "PENDING", "ACTIVE", "INACTIVE", "SUSPENDED", "EXPIRED", "UNDER_MAINTENANCE"
+  healthStatus   String              @default("UNKNOWN") // "HEALTHY", "WARNING", "OFFLINE", "UNKNOWN"
+  lastConnectionAt DateTime?
+  notes          String?
+  license        License?
+  tickets        Ticket[]
+  events         InstallationEvent[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([status])
+  @@index([clientId])
+  @@index([productId])
+}
+
+model License {
+  id            String           @id @default(cuid())
+  licenseKey    String           @unique // e.g. "VTX-PHARM-XXXX-XXXX"
+  installationId String          @unique
+  installation  Installation     @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  type          String           @default("LIFETIME") // "LIFETIME", "MONTHLY", "YEARLY", "TRIAL", "CUSTOM"
+  status        String           @default("PENDING_ACTIVATION") // "ACTIVE", "EXPIRING_SOON", "EXPIRED", "SUSPENDED", "PENDING_ACTIVATION"
+  activatedAt   DateTime?
+  expiresAt     DateTime?
+  maxUsers      Int              @default(1)
+  history       LicenseHistory[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model LicenseHistory {
+  id        String   @id @default(cuid())
+  licenseId String
+  license   License  @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+  action    String   // "ISSUED", "ACTIVATED", "RENEWED", "SUSPENDED", "EXPIRED"
+  notes     String?
+  createdAt DateTime @default(now())
+}
+
+model InstallationEvent {
+  id             String       @id @default(cuid())
+  installationId String
+  installation   Installation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  eventType      String       // "INSTALL", "UPGRADE", "MAINTENANCE", "STATUS_CHANGE"
+  description    String
+  createdAt      DateTime     @default(now())
+}
+
+// ==========================================
+// 7. FINANCE, INVOICES & PAYMENTS
+// ==========================================
+
+model Invoice {
+  id             String              @id @default(cuid())
+  invoiceNumber  String              @unique // e.g. "INV-2026-001"
+  clientId       String
+  client         Client              @relation(fields: [clientId], references: [id])
+  issueDate      DateTime            @default(now())
+  dueDate        DateTime
+  subtotal       Float               @default(0)
+  discount       Float               @default(0)
+  tax            Float               @default(0)
+  totalAmount    Float               @default(0)
+  paidAmount     Float               @default(0)
+  currency       String              @default("PKR")
+  status         String              @default("DRAFT") // "DRAFT", "SENT", "PARTIALLY_PAID", "PAID", "OVERDUE", "CANCELLED"
+  notes          String?
+  paymentTerms   String?             @default("Due on receipt")
+  items          InvoiceItem[]
+  allocations    PaymentAllocation[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([status])
+  @@index([clientId])
+}
+
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Int      @default(1)
+  unitPrice   Float
+  amount      Float
+}
+
+model Payment {
+  id            String              @id @default(cuid())
+  paymentCode   String              @unique // e.g. "PAY-7001"
+  clientId      String
+  client        Client              @relation(fields: [clientId], references: [id])
+  amount        Float
+  currency      String              @default("PKR")
+  paymentDate   DateTime            @default(now())
+  paymentMethod String              @default("BANK_TRANSFER") // "CASH", "BANK_TRANSFER", "JAZZCASH", "EASYPAISA", "ONLINE", "OTHER"
+  referenceNo   String?
+  receivedBy    String?
+  status        String              @default("COMPLETED") // "COMPLETED", "REFUNDED", "REVERSED"
+  notes         String?
+  allocations   PaymentAllocation[]
+  refunds       Refund[]
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  @@index([clientId])
+  @@index([paymentDate])
+}
+
+model PaymentAllocation {
+  id        String   @id @default(cuid())
+  paymentId String
+  payment   Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  invoiceId String
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amount    Float
+  createdAt DateTime @default(now())
+}
+
+model Refund {
+  id          String   @id @default(cuid())
+  paymentId   String
+  payment     Payment  @relation(fields: [paymentId], references: [id])
+  amount      Float
+  reason      String
+  refundDate  DateTime @default(now())
+  createdAt   DateTime @default(now())
+}
+
+model ExpenseCategory {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  expenses  Expense[]
+  createdAt DateTime  @default(now())
+}
+
+model Expense {
+  id            String           @id @default(cuid())
+  expenseCode   String           @unique // e.g. "EXP-8001"
+  title         String
+  categoryId    String?
+  category      ExpenseCategory? @relation(fields: [categoryId], references: [id])
+  amount        Float
+  currency      String           @default("PKR")
+  date          DateTime         @default(now())
+  paymentMethod String           @default("BANK_TRANSFER")
+  vendor        String?
+  description   String?
+  attachmentUrl String?
+  createdBy     String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([categoryId])
+  @@index([date])
+}
+
+// ==========================================
+// 8. PROJECTS & TASKS
+// ==========================================
+
+model Project {
+  id          String          @id @default(cuid())
+  projectCode String          @unique // e.g. "PRJ-9001"
+  name        String
+  type        String          @default("INTERNAL") // "INTERNAL", "CLIENT"
+  productId   String?
+  product     Product?        @relation(fields: [productId], references: [id])
+  description String?
+  managerName String?
+  priority    String          @default("MEDIUM") // "LOW", "MEDIUM", "HIGH", "URGENT"
+  status      String          @default("IN_PROGRESS") // "PLANNING", "IN_PROGRESS", "REVIEW", "COMPLETED", "ON_HOLD"
+  startDate   DateTime?
+  deadline    DateTime?
+  progress    Int             @default(0) // 0 - 100
+  tasks       Task[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([status])
+  @@index([type])
+}
+
+model Task {
+  id          String          @id @default(cuid())
+  taskCode    String          @unique // e.g. "TSK-1001"
+  title       String
+  description String?
+  projectId   String?
+  project     Project?        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignedToId String?
+  assignedTo  User?           @relation("TaskAssignee", fields: [assignedToId], references: [id])
+  createdById String?
+  createdBy   User?           @relation("TaskCreator", fields: [createdById], references: [id])
+  priority    String          @default("MEDIUM") // "LOW", "MEDIUM", "HIGH", "URGENT"
+  status      String          @default("TODO") // "BACKLOG", "TODO", "IN_PROGRESS", "REVIEW", "DONE", "CANCELLED"
+  deadline    DateTime?
+  checklists  TaskChecklist[]
+  comments    TaskComment[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([status])
+  @@index([projectId])
+  @@index([assignedToId])
+}
+
+model TaskChecklist {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  item      String
+  isDone    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author    String
+  content   String
+  createdAt DateTime @default(now())
+}
+
+// ==========================================
+// 9. SUPPORT & HELPDESK
+// ==========================================
+
+model Ticket {
+  id             String          @id @default(cuid())
+  ticketCode     String          @unique // e.g. "TCK-4001"
+  clientId       String
+  client         Client          @relation(fields: [clientId], references: [id])
+  branchId       String?
+  branch         Branch?         @relation(fields: [branchId], references: [id])
+  productId      String?
+  product        Product?        @relation(fields: [productId], references: [id])
+  installationId String?
+  installation   Installation?   @relation(fields: [installationId], references: [id])
+  title          String
+  description    String
+  category       String          @default("TECHNICAL") // "BUG", "TECHNICAL", "INSTALLATION", "TRAINING", "BILLING", "FEATURE_REQUEST", "GENERAL"
+  priority       String          @default("MEDIUM") // "LOW", "MEDIUM", "HIGH", "CRITICAL"
+  status         String          @default("OPEN") // "OPEN", "ASSIGNED", "IN_PROGRESS", "WAITING_FOR_CLIENT", "RESOLVED", "CLOSED"
+  assignedToId   String?
+  assignedTo     User?           @relation("TicketAssignee", fields: [assignedToId], references: [id])
+  resolutionNotes String?
+  resolvedAt     DateTime?
+  messages       TicketMessage[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([status])
+  @@index([priority])
+  @@index([clientId])
+}
+
+model TicketMessage {
+  id        String   @id @default(cuid())
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  sender    String
+  isInternal Boolean  @default(false)
+  message   String
+  createdAt DateTime @default(now())
+}
+
+// ==========================================
+// 10. KNOWLEDGE BASE & DOCUMENTS
+// ==========================================
+
+model KnowledgeArticle {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  category    String   // "COMPANY", "SALES", "PRODUCTS", "TECHNICAL", "OPERATIONS"
+  content     String
+  author      String
+  tags        String?
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  title       String
+  category    String   // "AGREEMENT", "PROPOSAL", "MANUAL", "INVOICE", "RECEIPT", "INTERNAL"
+  fileUrl     String?
+  fileSize    Int?
+  fileType    String?
+  notes       String?
+  clientId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ==========================================
+// 11. SYSTEM, ACTIVITY & AUDIT LOGS
+// ==========================================
+
+model Activity {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  userName    String   @default("System")
+  module      String   // "LEAD", "CLIENT", "DEAL", "INVOICE", "PAYMENT", "INSTALLATION", "TICKET", "PROJECT", "TASK"
+  event       String   // e.g. "LEAD_CREATED", "STATUS_CHANGED", "PAYMENT_RECEIVED"
+  recordId    String?
+  leadId      String?
+  lead        Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  clientId    String?
+  client      Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  description String
+  createdAt   DateTime @default(now())
+
+  @@index([module])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  action      String   // "CREATE", "UPDATE", "DELETE", "LOGIN", "EXPORT", "PAYMENT_REVERSAL"
+  entity      String   // "Invoice", "Payment", "Client", "Lead", "User", "Role"
+  entityId    String?
+  oldValues   String?  // JSON serialized string
+  newValues   String?  // JSON serialized string
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  @@index([entity])
+  @@index([action])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   // "FOLLOWUP_DUE", "INVOICE_DUE", "LICENSE_EXPIRING", "TICKET_CREATED", "TASK_ASSIGNED", "SYSTEM"
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([isRead])
+}
+
+model CompanySetting {
+  id             String   @id @default(cuid())
+  companyName    String   @default("Vertexia")
+  tagline        String   @default("One Platform. Complete Business Control.")
+  website        String   @default("https://vertexia.pk")
+  email          String   @default("info@vertexia.pk")
+  phone          String   @default("+92 300 0000000")
+  address        String   @default("Karachi, Pakistan")
+  city           String   @default("Karachi")
+  country        String   @default("Pakistan")
+  currency       String   @default("PKR")
+  timezone       String   @default("Asia/Karachi")
+  dateFormat     String   @default("DD/MM/YYYY")
+  invoicePrefix  String   @default("INV")
+  primaryColor   String   @default("#0F172A")
+  accentColor    String   @default("#2563EB")
+  updatedAt      DateTime @updatedAt
+}
