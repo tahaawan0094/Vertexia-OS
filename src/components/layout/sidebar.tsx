@@ -128,13 +128,14 @@ export function Sidebar() {
         <div className="h-16 flex items-center justify-between px-5 border-b border-slate-800/80">
           {!isCollapsed ? (
             <Link href="/" className="flex items-center gap-3">
-              <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-slate-900 border border-slate-700/80 shrink-0 flex items-center justify-center">
+              <div className="relative w-8 h-8 shrink-0 flex items-center justify-center">
                 <Image
-                  src="/9b8db237-6cd9-4f56-9713-92c1a701dcc0.png"
+                  src="/logo.png"
                   alt="Vertexia OS Logo"
                   width={32}
                   height={32}
-                  className="object-contain p-0.5"
+                  className="object-contain w-full h-full"
+                  priority
                 />
               </div>
               <div className="flex flex-col">
@@ -147,13 +148,14 @@ export function Sidebar() {
               </div>
             </Link>
           ) : (
-            <div className="relative w-8 h-8 mx-auto rounded-lg overflow-hidden bg-slate-900 border border-slate-700/80 flex items-center justify-center">
+            <div className="relative w-8 h-8 mx-auto flex items-center justify-center">
               <Image
-                src="/9b8db237-6cd9-4f56-9713-92c1a701dcc0.png"
+                src="/logo.png"
                 alt="Vertexia OS Logo"
                 width={32}
                 height={32}
-                className="object-contain p-0.5"
+                className="object-contain w-full h-full"
+                priority
               />
             </div>
           )}

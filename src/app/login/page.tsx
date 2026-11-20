@@ -1,13 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   Eye,
   EyeOff,
-  ChevronRight,
-  ChevronLeft,
   AlertCircle,
   HelpCircle,
   Shield,
@@ -24,19 +22,23 @@ export default function LoginPage() {
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  // High-res curated tech & business architecture visuals for Vertexia
+  // 2 high-res curated modern digital visuals for Vertexia
   const showcaseSlides = [
     {
       url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1600&auto=format&fit=crop",
-      title: "Core Platform Architecture",
-      subtitle: "Enterprise POS, CRM & Business Control",
     },
     {
       url: "https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?q=80&w=1600&auto=format&fit=crop",
-      title: "Cloud Synchronized Operations",
-      subtitle: "Multi-branch retail & real-time telemetry",
     },
   ];
+
+  // Automatically switch between the 2 visual screens every 5 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % showcaseSlides.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [showcaseSlides.length]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,14 +66,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleNextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % showcaseSlides.length);
-  };
-
-  const handlePrevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + showcaseSlides.length) % showcaseSlides.length);
-  };
-
   return (
     <div className="min-h-screen w-full flex flex-col lg:flex-row bg-white font-sans relative overflow-x-hidden">
       
@@ -81,16 +75,16 @@ export default function LoginPage() {
         {/* Inner container to keep inputs elegantly proportioned */}
         <div className="max-w-md w-full mx-auto flex flex-col justify-between h-full py-2">
           
-          {/* Top Brand Logo & Name */}
+          {/* Top Brand Logo & Name (No black border, transparent logo) */}
           <div>
             <div className="flex items-center gap-3">
-              <div className="relative w-11 h-11 rounded-xl overflow-hidden bg-slate-950 flex items-center justify-center shadow-md">
+              <div className="relative w-10 h-10 shrink-0 flex items-center justify-center">
                 <Image
-                  src="/9b8db237-6cd9-4f56-9713-92c1a701dcc0.png"
+                  src="/logo.png"
                   alt="Vertexia Logo"
-                  width={44}
-                  height={44}
-                  className="object-contain w-full h-full p-1"
+                  width={40}
+                  height={40}
+                  className="object-contain w-full h-full"
                   priority
                 />
               </div>
@@ -211,71 +205,57 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Center Floating Indicator (Positioned exactly on the 50% split line) */}
-      <div 
-        className="hidden lg:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-amber-400 text-amber-950 shadow-xl items-center justify-center z-30 font-bold border-4 border-white hover:scale-110 transition-transform cursor-pointer"
-        onClick={handleNextSlide}
-        title="Switch showcase slide"
-      >
-        <ChevronRight className="w-5 h-5 fill-current" />
-      </div>
-
       {/* Right Column: Full-height visual showcase (50% on desktop, edge-to-edge) */}
       <div className="hidden lg:flex lg:w-1/2 min-h-screen relative bg-slate-950 overflow-hidden">
-        {/* Full-bleed Visual Image */}
-        <div className="absolute inset-0">
-          <Image
-            src={showcaseSlides[currentSlide].url}
-            alt={showcaseSlides[currentSlide].title}
-            fill
-            className="object-cover transition-opacity duration-700 opacity-90"
-            sizes="50vw"
-            priority
-          />
-          {/* Subtle gradient vignette for readability */}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-transparent to-slate-950/25" />
-        </div>
-
-        {/* Top subtle badge */}
-        <div className="absolute top-8 left-8 z-10">
-          <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white text-xs font-medium shadow-lg">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Vertexia OS v2.0 • Karachi HQ</span>
+        {/* Automatic cross-fading visual screens */}
+        {showcaseSlides.map((slide, idx) => (
+          <div
+            key={slide.url}
+            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+              currentSlide === idx ? "opacity-90" : "opacity-0 pointer-events-none"
+            }`}
+          >
+            <Image
+              src={slide.url}
+              alt="Vertexia Visual Showcase"
+              fill
+              className="object-cover"
+              sizes="50vw"
+              priority={idx === 0}
+            />
           </div>
-        </div>
+        ))}
 
-        {/* Bottom Title & Pagination controls */}
-        <div className="absolute bottom-8 left-8 right-8 z-10 flex items-end justify-between text-white">
-          <div className="max-w-[70%]">
-            <h2 className="font-heading font-bold text-xl text-white leading-tight drop-shadow-md">
-              {showcaseSlides[currentSlide].title}
+        {/* Subtle gradient vignette for readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-slate-950/20 pointer-events-none" />
+
+        {/* Bottom Title with Vertexia Official Tagline & Subtle Progress Dots */}
+        <div className="absolute bottom-10 left-10 right-10 z-10 flex items-end justify-between text-white">
+          <div className="max-w-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-white/70">
+                Vertexia OS
+              </span>
+            </div>
+            <h2 className="font-heading font-extrabold text-2xl text-white leading-tight drop-shadow-md">
+              One Platform. Complete Business Control.
             </h2>
-            <p className="text-xs text-white/80 mt-1.5 drop-shadow leading-relaxed">
-              {showcaseSlides[currentSlide].subtitle}
+            <p className="text-xs text-white/80 mt-1.5 drop-shadow font-normal leading-relaxed">
+              Empowering intelligent business operations, point-of-sale, and client management.
             </p>
           </div>
 
-          {/* Pagination Widget */}
-          <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-md border border-white/20 p-1.5 rounded-xl shadow-lg">
-            <button
-              type="button"
-              onClick={handlePrevSlide}
-              className="w-8 h-8 rounded-lg hover:bg-white/20 flex items-center justify-center transition-colors text-white"
-              title="Previous slide"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <div className="px-2.5 py-1 rounded-md bg-white text-slate-900 font-bold text-xs select-none shadow-sm">
-              {currentSlide + 1}
-            </div>
-            <button
-              type="button"
-              onClick={handleNextSlide}
-              className="w-8 h-8 rounded-lg hover:bg-white/20 flex items-center justify-center transition-colors text-white"
-              title="Next slide"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
+          {/* Minimalist automatic progress indicator dots */}
+          <div className="flex items-center gap-2 pb-1">
+            {showcaseSlides.map((_, idx) => (
+              <span
+                key={idx}
+                className={`h-1.5 rounded-full transition-all duration-500 ${
+                  currentSlide === idx ? "w-7 bg-white shadow-md" : "w-1.5 bg-white/40"
+                }`}
+              />
+            ))}
           </div>
         </div>
       </div>
