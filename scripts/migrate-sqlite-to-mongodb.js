@@ -3,23 +3,51 @@
  *
  * This script exports all current production records from the local SQLite database
  * and seamlessly seeds them into your cloud MongoDB Atlas database.
- *
- * Usage:
- *   node scripts/migrate-sqlite-to-mongodb.js <MONGODB_URI>
- * Example:
- *   node scripts/migrate-sqlite-to-mongodb.js "mongodb+srv://admin:pass@cluster0.abcde.mongodb.net/vertexia_os?retryWrites=true&w=majority"
  */
 
-const { PrismaClient } = require("@prisma/client");
+const fs = require("fs");
+const path = require("path");
 const mongoose = require("mongoose");
+const { PrismaClient } = require("@prisma/client");
 
-const mongoUri = process.argv[2] || process.env.MONGODB_URI || process.env.DATABASE_URL;
+// Read .env file directly if needed
+function loadEnv() {
+  const envPath = path.resolve(process.cwd(), ".env");
+  if (fs.existsSync(envPath)) {
+    const lines = fs.readFileSync(envPath, "utf-8").split("\n");
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const idx = trimmed.indexOf("=");
+      if (idx !== -1) {
+        const key = trimmed.slice(0, idx).trim();
+        let val = trimmed.slice(idx + 1).trim();
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.slice(1, -1);
+        }
+        if (!process.env[key]) {
+          process.env[key] = val;
+        }
+      }
+    }
+  }
+}
+
+loadEnv();
+
+let mongoUri = process.argv[2] || process.env.MONGODB_URI || process.env.DATABASE_URL;
 
 if (!mongoUri || !mongoUri.startsWith("mongodb")) {
   console.error("\n❌ Error: Please provide a valid MongoDB Atlas connection URI.");
   console.log("Usage: node scripts/migrate-sqlite-to-mongodb.js <MONGODB_URI>");
-  console.log('Example: node scripts/migrate-sqlite-to-mongodb.js "mongodb+srv://admin:pass@cluster.mongodb.net/vertexia_os"\n');
   process.exit(1);
+}
+
+// Ensure database name is set
+if (mongoUri.endsWith(".mongodb.net/")) {
+  mongoUri += "vertexia_os?retryWrites=true&w=majority";
+} else if (mongoUri.endsWith(".mongodb.net")) {
+  mongoUri += "/vertexia_os?retryWrites=true&w=majority";
 }
 
 async function runMigration() {
@@ -27,7 +55,14 @@ async function runMigration() {
   console.log("   VERTEXIA OS — DATABASE MIGRATION TO MONGODB ATLAS   ");
   console.log("=====================================================\n");
 
-  const sqlitePrisma = new PrismaClient();
+  // Explicitly connect to local SQLite dev.db for reading source data
+  const sqlitePrisma = new PrismaClient({
+    datasources: {
+      db: {
+        url: "file:./dev.db",
+      },
+    },
+  });
 
   try {
     console.log("1. Reading existing verified data from local database...");
@@ -82,8 +117,12 @@ async function runMigration() {
     console.log(`   Found: ${users.length} Users, ${products.length} Products, ${clients.length} Clients, ${invoices.length} Invoices.`);
 
     console.log("\n2. Connecting to MongoDB Atlas cluster...");
+    // Mask credentials when printing to console
+    const maskedUri = mongoUri.replace(/(mongodb\+srv:\/\/[^:]+:)[^@]+(@.+)/, "$1******$2");
+    console.log(`   Cluster target: ${maskedUri}`);
+
     await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 15000,
     });
     console.log("   ✓ Successfully connected to MongoDB Atlas!");
 
@@ -97,7 +136,7 @@ async function runMigration() {
       await col.deleteMany({});
       const docs = data.map((d) => {
         const doc = { ...d };
-        doc._id = d.id; // Map primary key
+        doc._id = d.id; // Preserve ID mapping
         return doc;
       });
       await col.insertMany(docs);
