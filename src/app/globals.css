@@ -58,6 +58,15 @@ h1, h2, h3, h4, h5, h6 {
   background: #94A3B8;
 }
 
+/* Hide scrollbar completely for sidebar and clean containers */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* Table and interactive enhancements */
 .table-container {
   overflow-x: auto;
