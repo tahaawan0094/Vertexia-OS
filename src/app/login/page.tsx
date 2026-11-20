@@ -4,15 +4,12 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
-  Lock,
-  Mail,
   Eye,
   EyeOff,
   ChevronRight,
   ChevronLeft,
   AlertCircle,
   HelpCircle,
-  CheckCircle2,
   Shield,
 } from "lucide-react";
 
@@ -27,7 +24,7 @@ export default function LoginPage() {
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  // Curated high-res relevant tech / digital architecture visuals for Vertexia
+  // High-res curated tech & business architecture visuals for Vertexia
   const showcaseSlides = [
     {
       url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1600&auto=format&fit=crop",
@@ -76,97 +73,73 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F7F9] flex items-center justify-center p-4 sm:p-6 lg:p-10 font-sans relative overflow-hidden">
-      {/* Subtle organic background vector lines */}
-      <div className="absolute inset-0 pointer-events-none opacity-40">
-        <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="grid-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#CBD5E1" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="#E2E8F0" stopOpacity="0.05" />
-            </linearGradient>
-          </defs>
-          <path
-            d="M-100,200 C300,100 600,500 1200,300 C1500,200 1800,600 2200,400"
-            fill="none"
-            stroke="url(#grid-grad)"
-            strokeWidth="1.5"
-          />
-          <path
-            d="M-50,500 C400,300 700,700 1400,450 C1700,350 1900,800 2400,600"
-            fill="none"
-            stroke="url(#grid-grad)"
-            strokeWidth="1"
-          />
-        </svg>
-      </div>
-
-      {/* Main Container Card — Matches Kafh UI design layout */}
-      <div className="relative w-full max-w-5xl bg-white rounded-[28px] border border-slate-200/90 shadow-2xl shadow-slate-900/5 overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[640px] z-10">
+    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-white font-sans relative overflow-x-hidden">
+      
+      {/* Left Column: Full-height login area (50% on desktop) */}
+      <div className="w-full lg:w-1/2 min-h-screen flex flex-col justify-between p-6 sm:p-12 lg:p-16 xl:p-20 z-10 bg-white">
         
-        {/* Left Side: Login Form (approx 48% on desktop) */}
-        <div className="lg:col-span-6 p-8 sm:p-12 lg:p-14 flex flex-col justify-between bg-white">
+        {/* Inner container to keep inputs elegantly proportioned */}
+        <div className="max-w-md w-full mx-auto flex flex-col justify-between h-full py-2">
+          
+          {/* Top Brand Logo & Name */}
           <div>
-            {/* Top Brand Logo & Name */}
             <div className="flex items-center gap-3">
-              <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-slate-950 flex items-center justify-center shadow-md">
+              <div className="relative w-11 h-11 rounded-xl overflow-hidden bg-slate-950 flex items-center justify-center shadow-md">
                 <Image
                   src="/9b8db237-6cd9-4f56-9713-92c1a701dcc0.png"
                   alt="Vertexia Logo"
-                  width={40}
-                  height={40}
+                  width={44}
+                  height={44}
                   className="object-contain w-full h-full p-1"
                   priority
                 />
               </div>
               <div className="flex flex-col">
-                <span className="font-heading font-black text-lg tracking-tight text-slate-900 leading-none">
+                <span className="font-heading font-black text-xl tracking-tight text-slate-900 leading-none">
                   VERTEXIA <span className="text-[#0D594B]">OS</span>
                 </span>
-                <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">
+                <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-1">
                   Business Management
                 </span>
               </div>
             </div>
 
             {/* Heading & Subtitle */}
-            <div className="mt-8 mb-6">
+            <div className="mt-12 mb-8">
               <h1 className="text-3xl sm:text-4xl font-extrabold font-heading text-slate-900 tracking-tight">
                 Welcome Back!
               </h1>
-              <p className="text-sm text-slate-500 font-medium mt-1.5">
+              <p className="text-sm text-slate-500 font-medium mt-2">
                 Please Log in to your account.
               </p>
             </div>
 
             {/* Error Banner */}
             {error && (
-              <div className="mb-5 p-3.5 rounded-xl bg-rose-50 border border-rose-200/80 text-xs text-rose-700 flex items-start gap-2.5 animate-in fade-in">
+              <div className="mb-6 p-3.5 rounded-xl bg-rose-50 border border-rose-200/80 text-xs text-rose-700 flex items-start gap-2.5 animate-in fade-in">
                 <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
                 <span className="leading-relaxed font-medium">{error}</span>
               </div>
             )}
 
             {/* Login Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 mb-2">
                   Email Address
                 </label>
-                <div className="relative">
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@vertexia.pk"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#0D594B] focus:ring-2 focus:ring-[#0D594B]/15 transition-all"
-                  />
-                </div>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@vertexia.pk"
+                  className="w-full px-4 py-3.5 rounded-xl border border-slate-200 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#0D594B] focus:ring-2 focus:ring-[#0D594B]/15 transition-all shadow-sm"
+                />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 mb-2">
                   Password
                 </label>
                 <div className="relative">
@@ -176,7 +149,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••••••"
-                    className="w-full pl-4 pr-11 py-3 rounded-xl border border-slate-200 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#0D594B] focus:ring-2 focus:ring-[#0D594B]/15 transition-all font-mono tracking-wider"
+                    className="w-full pl-4 pr-12 py-3.5 rounded-xl border border-slate-200 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#0D594B] focus:ring-2 focus:ring-[#0D594B]/15 transition-all shadow-sm font-mono tracking-wider"
                   />
                   <button
                     type="button"
@@ -215,7 +188,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-8 py-3 rounded-xl bg-[#0D594B] hover:bg-[#094338] active:scale-[0.98] text-white font-semibold text-sm shadow-md shadow-[#0D594B]/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="px-9 py-3.5 rounded-xl bg-[#0D594B] hover:bg-[#094338] active:scale-[0.98] text-white font-semibold text-sm shadow-md shadow-[#0D594B]/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -223,7 +196,7 @@ export default function LoginPage() {
                   <span>Login</span>
                 </button>
 
-                <div className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold bg-slate-50 flex items-center gap-1.5">
+                <div className="px-4 py-3 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold bg-slate-50 flex items-center gap-1.5">
                   <Shield className="w-3.5 h-3.5 text-[#0D594B]" />
                   <span>Internal Access</span>
                 </div>
@@ -232,76 +205,77 @@ export default function LoginPage() {
           </div>
 
           {/* Footer note */}
-          <div className="mt-8 pt-4 border-t border-slate-100 text-[11px] text-slate-400 leading-relaxed">
+          <div className="mt-12 pt-6 border-t border-slate-100 text-[11px] text-slate-400 leading-relaxed">
             By signing up you agree to our terms and that you have read our internal data security policy.
           </div>
         </div>
+      </div>
 
-        {/* Center Floating Indicator (Matches the yellow circle from Kafh design) */}
-        <div className="hidden lg:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-amber-400 text-amber-950 shadow-lg items-center justify-center z-20 font-bold border-2 border-white hover:scale-105 transition-transform cursor-pointer"
-             onClick={handleNextSlide}
-             title="Switch showcase slide"
-        >
-          <ChevronRight className="w-5 h-5 fill-current" />
+      {/* Center Floating Indicator (Positioned exactly on the 50% split line) */}
+      <div 
+        className="hidden lg:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-amber-400 text-amber-950 shadow-xl items-center justify-center z-30 font-bold border-4 border-white hover:scale-110 transition-transform cursor-pointer"
+        onClick={handleNextSlide}
+        title="Switch showcase slide"
+      >
+        <ChevronRight className="w-5 h-5 fill-current" />
+      </div>
+
+      {/* Right Column: Full-height visual showcase (50% on desktop, edge-to-edge) */}
+      <div className="hidden lg:flex lg:w-1/2 min-h-screen relative bg-slate-950 overflow-hidden">
+        {/* Full-bleed Visual Image */}
+        <div className="absolute inset-0">
+          <Image
+            src={showcaseSlides[currentSlide].url}
+            alt={showcaseSlides[currentSlide].title}
+            fill
+            className="object-cover transition-opacity duration-700 opacity-90"
+            sizes="50vw"
+            priority
+          />
+          {/* Subtle gradient vignette for readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-transparent to-slate-950/25" />
         </div>
 
-        {/* Right Side: Stunning relevant visual showcase (approx 52% on desktop) */}
-        <div className="lg:col-span-6 relative bg-slate-950 overflow-hidden min-h-[320px] lg:min-h-full">
-          {/* Visual Image */}
-          <div className="absolute inset-0">
-            <Image
-              src={showcaseSlides[currentSlide].url}
-              alt={showcaseSlides[currentSlide].title}
-              fill
-              className="object-cover transition-opacity duration-700 opacity-90"
-              sizes="(max-width: 1024px) 100vw, 50vw"
-              priority
-            />
-            {/* Subtle gradient vignette */}
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/20" />
+        {/* Top subtle badge */}
+        <div className="absolute top-8 left-8 z-10">
+          <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white text-xs font-medium shadow-lg">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Vertexia OS v2.0 • Karachi HQ</span>
+          </div>
+        </div>
+
+        {/* Bottom Title & Pagination controls */}
+        <div className="absolute bottom-8 left-8 right-8 z-10 flex items-end justify-between text-white">
+          <div className="max-w-[70%]">
+            <h2 className="font-heading font-bold text-xl text-white leading-tight drop-shadow-md">
+              {showcaseSlides[currentSlide].title}
+            </h2>
+            <p className="text-xs text-white/80 mt-1.5 drop-shadow leading-relaxed">
+              {showcaseSlides[currentSlide].subtitle}
+            </p>
           </div>
 
-          {/* Top subtle badge */}
-          <div className="absolute top-6 left-6 z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white text-[11px] font-medium">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Vertexia OS v2.0 • Karachi HQ</span>
+          {/* Pagination Widget */}
+          <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-md border border-white/20 p-1.5 rounded-xl shadow-lg">
+            <button
+              type="button"
+              onClick={handlePrevSlide}
+              className="w-8 h-8 rounded-lg hover:bg-white/20 flex items-center justify-center transition-colors text-white"
+              title="Previous slide"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <div className="px-2.5 py-1 rounded-md bg-white text-slate-900 font-bold text-xs select-none shadow-sm">
+              {currentSlide + 1}
             </div>
-          </div>
-
-          {/* Bottom Title & Pagination controls (Matches Kafh controls [ < ] [ 1 ] [ > ]) */}
-          <div className="absolute bottom-6 left-6 right-6 z-10 flex items-end justify-between text-white">
-            <div className="max-w-[70%]">
-              <h2 className="font-heading font-bold text-lg text-white leading-tight drop-shadow-md">
-                {showcaseSlides[currentSlide].title}
-              </h2>
-              <p className="text-xs text-white/80 mt-1 drop-shadow">
-                {showcaseSlides[currentSlide].subtitle}
-              </p>
-            </div>
-
-            {/* Pagination Widget */}
-            <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-md border border-white/20 p-1.5 rounded-xl">
-              <button
-                type="button"
-                onClick={handlePrevSlide}
-                className="w-7 h-7 rounded-lg hover:bg-white/20 flex items-center justify-center transition-colors text-white"
-                title="Previous slide"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <div className="px-2 py-0.5 rounded-md bg-white text-slate-900 font-bold text-xs select-none shadow-sm">
-                {currentSlide + 1}
-              </div>
-              <button
-                type="button"
-                onClick={handleNextSlide}
-                className="w-7 h-7 rounded-lg hover:bg-white/20 flex items-center justify-center transition-colors text-white"
-                title="Next slide"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleNextSlide}
+              className="w-8 h-8 rounded-lg hover:bg-white/20 flex items-center justify-center transition-colors text-white"
+              title="Next slide"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
