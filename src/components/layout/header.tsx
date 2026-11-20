@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   Clock,
   Sparkles,
+  KeyRound,
 } from "lucide-react";
 import { GlobalSearchModal } from "./global-search-modal";
 
@@ -237,6 +238,14 @@ export function Header({ user }: HeaderProps) {
                   <div className="font-semibold text-slate-800">{user?.name || "Taha Awan"}</div>
                   <div className="text-[11px] text-slate-500">{user?.email || "taha@vertexia.pk"}</div>
                 </div>
+
+                <button
+                  onClick={() => router.push("/admin/users")}
+                  className="w-full text-left px-3 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                >
+                  <KeyRound className="w-3.5 h-3.5 text-slate-400" />
+                  Security & Password
+                </button>
 
                 <button
                   onClick={() => router.push("/settings")}

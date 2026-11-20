@@ -72,6 +72,7 @@ export default function UserRoleManagementPage() {
   const [editUserForm, setEditUserForm] = useState({
     name: "",
     email: "",
+    password: "",
     roleId: "",
     employeeId: "",
     isActive: true,
@@ -194,6 +195,7 @@ export default function UserRoleManagementPage() {
     setEditUserForm({
       name: u.name,
       email: u.email,
+      password: "",
       roleId: u.role?.id || "",
       employeeId: u.employee?.id || "",
       isActive: u.isActive,
@@ -392,6 +394,20 @@ export default function UserRoleManagementPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          {currentUser && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                const me = users.find((u) => u.id === currentUser.id) || currentUser;
+                handleOpenEditUser(me);
+              }}
+            >
+              <KeyRound className="w-3.5 h-3.5 mr-1 text-slate-600" />
+              <span>Change My Username / Pass</span>
+            </Button>
+          )}
+
           {activeTab === "users" ? (
             <Button size="sm" onClick={() => { setFormError(""); setIsAddUserModalOpen(true); }}>
               <UserPlus className="w-3.5 h-3.5 mr-1" />
@@ -769,11 +785,20 @@ export default function UserRoleManagementPage() {
           />
 
           <Input
-            label="Email Address"
+            label="Email Address (Login Username)"
             type="email"
             required
             value={editUserForm.email}
             onChange={(e) => setEditUserForm({ ...editUserForm, email: e.target.value })}
+          />
+
+          <Input
+            label="Change Password (Optional)"
+            type="password"
+            placeholder="Leave blank to keep existing password"
+            value={editUserForm.password}
+            onChange={(e) => setEditUserForm({ ...editUserForm, password: e.target.value })}
+            helperText="Enter a new password (min. 8 characters) to update credentials."
           />
 
           <Select

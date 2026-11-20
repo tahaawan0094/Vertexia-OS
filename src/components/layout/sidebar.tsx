@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
@@ -126,22 +127,34 @@ export function Sidebar() {
         {/* Brand Header */}
         <div className="h-16 flex items-center justify-between px-5 border-b border-slate-800/80">
           {!isCollapsed ? (
-            <Link href="/" className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded bg-blue-600 flex items-center justify-center font-bold text-white text-xs tracking-wider">
-                  V
-                </div>
-                <span className="font-heading font-bold text-base tracking-wide text-white">
-                  VERTEXIA <span className="text-blue-500 font-normal">OS</span>
+            <Link href="/" className="flex items-center gap-3">
+              <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-slate-900 border border-slate-700/80 shrink-0 flex items-center justify-center">
+                <Image
+                  src="/9b8db237-6cd9-4f56-9713-92c1a701dcc0.png"
+                  alt="Vertexia OS Logo"
+                  width={32}
+                  height={32}
+                  className="object-contain p-0.5"
+                />
+              </div>
+              <div className="flex flex-col">
+                <span className="font-heading font-black text-sm tracking-wide text-white leading-none">
+                  VERTEXIA <span className="text-blue-500 font-semibold">OS</span>
+                </span>
+                <span className="text-[10px] text-slate-400 tracking-tight mt-1">
+                  Business Control
                 </span>
               </div>
-              <span className="text-[10px] text-slate-400 tracking-tight pl-8">
-                Business Control Center
-              </span>
             </Link>
           ) : (
-            <div className="w-7 h-7 mx-auto rounded bg-blue-600 flex items-center justify-center font-bold text-white text-sm">
-              V
+            <div className="relative w-8 h-8 mx-auto rounded-lg overflow-hidden bg-slate-900 border border-slate-700/80 flex items-center justify-center">
+              <Image
+                src="/9b8db237-6cd9-4f56-9713-92c1a701dcc0.png"
+                alt="Vertexia OS Logo"
+                width={32}
+                height={32}
+                className="object-contain p-0.5"
+              />
             </div>
           )}
 

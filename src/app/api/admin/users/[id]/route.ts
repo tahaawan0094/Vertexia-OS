@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getCurrentUser, isAdminUser } from "@/lib/auth";
+import { getCurrentUser, isAdminUser, hashPassword } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
 import { logAudit } from "@/lib/audit";
 
@@ -23,7 +23,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     }
 
     const body = await req.json();
-    const { name, email, roleId, employeeId, isActive } = body;
+    const { name, email, roleId, employeeId, isActive, password, newPassword } = body;
 
     const data: any = {};
     if (name !== undefined) data.name = name.trim();
@@ -37,6 +37,19 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       }
       data.email = lower;
     }
+
+    const pwdToUpdate = password || newPassword;
+    if (pwdToUpdate !== undefined && pwdToUpdate.trim().length > 0) {
+      if (pwdToUpdate.trim().length < 8) {
+        return NextResponse.json({ error: "Password must be at least 8 characters long." }, { status: 400 });
+      }
+      data.passwordHash = await hashPassword(pwdToUpdate.trim());
+      // If changing another user's password, invalidate their sessions
+      if (id !== admin.id) {
+        await prisma.session.deleteMany({ where: { userId: id } });
+      }
+    }
+
     if (roleId !== undefined) data.roleId = roleId;
     if (employeeId !== undefined) data.employeeId = employeeId || null;
     if (isActive !== undefined) {
