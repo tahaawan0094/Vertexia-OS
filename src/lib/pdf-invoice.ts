@@ -1,5 +1,4 @@
 import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
 
 interface InvoiceData {
   invoiceNumber: string;
@@ -30,6 +29,15 @@ interface InvoiceData {
   paymentTerms?: string | null;
 }
 
+const formatInvoiceDate = (date: string | Date) => {
+  const d = new Date(date);
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+};
+
 export function generateInvoicePDF(data: InvoiceData): jsPDF {
   const doc = new jsPDF({
     orientation: "portrait",
@@ -37,203 +45,149 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
     format: "a4",
   });
 
-  const primaryColor: [number, number, number] = [15, 23, 42]; // Navy #0F172A
-  const accentColor: [number, number, number] = [37, 99, 235]; // Blue #2563EB
-  const grayText: [number, number, number] = [100, 116, 139]; // Gray #64748B
-
-  // Header Background Bar
-  doc.setFillColor(...primaryColor);
-  doc.rect(0, 0, 210, 36, "F");
-
-  // Company Brand
-  doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(22);
-  doc.text("VERTEXIA OS", 14, 18);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(203, 213, 225);
-  doc.text("Vertexia Software Company • Karachi, Pakistan", 14, 25);
-  doc.text("contact@vertexia.pk • https://vertexia.pk", 14, 30);
-
-  // Document Title
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(20);
-  doc.setTextColor(255, 255, 255);
-  doc.text("INVOICE", 196, 20, { align: "right" });
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(226, 232, 240);
-  doc.text(`#${data.invoiceNumber}`, 196, 28, { align: "right" });
-
-  // Bill To & Invoice Meta
-  let y = 48;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.setTextColor(...primaryColor);
-  doc.text("BILLED TO:", 14, y);
-  doc.text("INVOICE DETAILS:", 130, y);
-
-  y += 6;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.setTextColor(15, 23, 42);
-  doc.text(data.client.businessName, 14, y);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(...grayText);
-  doc.text(`Issue Date: ${new Date(data.issueDate).toLocaleDateString("en-GB")}`, 130, y);
-
-  y += 5;
-  if (data.client.contactPerson) {
-    doc.text(`Attn: ${data.client.contactPerson}`, 14, y);
-  }
-  doc.text(`Due Date: ${new Date(data.dueDate).toLocaleDateString("en-GB")}`, 130, y);
-
-  y += 5;
-  if (data.client.phone) {
-    doc.text(`Phone: ${data.client.phone}`, 14, y);
-  }
-  doc.text(`Status: ${data.status}`, 130, y);
-
-  y += 5;
-  if (data.client.address || data.client.city) {
-    doc.text(`${data.client.address || ""}, ${data.client.city || "Karachi"}`, 14, y);
-  }
   const balanceDue = Math.max(0, data.totalAmount - data.paidAmount);
+  const formattedDate = formatInvoiceDate(data.issueDate);
+
+  // Outer thin border box (matching the sheet container)
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.4);
+  doc.roundedRect(12, 12, 186, 273, 3, 3, "S");
+
+  // Top Title: INVOICE
+  doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "bold");
-  if (balanceDue > 0) {
-    doc.setTextColor(220, 38, 38);
-  } else {
-    doc.setTextColor(22, 163, 74);
-  }
-  doc.text(`Balance Due: ${data.currency} ${balanceDue.toLocaleString()}`, 130, y);
+  doc.setFontSize(28);
+  doc.text("INVOICE", 20, 27);
 
-  // Table Items
-  const tableData = data.items.map((item, idx) => [
-    (idx + 1).toString(),
-    item.description,
-    item.quantity.toString(),
-    `${data.currency} ${item.unitPrice.toLocaleString()}`,
-    `${data.currency} ${item.amount.toLocaleString()}`,
-  ]);
+  // Arrow Down-Left Icon at Top Right
+  doc.setLineWidth(0.7);
+  doc.line(183, 20, 175, 28); // diagonal
+  doc.line(175, 28, 182, 28); // horizontal head
+  doc.line(175, 28, 175, 21); // vertical head
 
-  autoTable(doc, {
-    startY: y + 10,
-    head: [["#", "Description", "Qty", "Unit Price", "Total Amount"]],
-    body: tableData,
-    theme: "striped",
-    headStyles: {
-      fillColor: primaryColor,
-      textColor: [255, 255, 255],
-      fontStyle: "bold",
-      fontSize: 9,
-    },
-    bodyStyles: {
-      textColor: [30, 41, 59],
-      fontSize: 9,
-    },
-    columnStyles: {
-      0: { cellWidth: 12, halign: "center" },
-      1: { cellWidth: 90 },
-      2: { cellWidth: 20, halign: "center" },
-      3: { cellWidth: 35, halign: "right" },
-      4: { cellWidth: 35, halign: "right" },
-    },
-  });
+  // Invoice Number: INVOICE NO.06
+  doc.setFontSize(9.5);
+  doc.setFont("helvetica", "bold");
+  const invoiceNumStr = data.invoiceNumber.startsWith("INV-")
+    ? `INVOICE NO.${data.invoiceNumber.replace(/^INV-0*/i, "")}`
+    : `INVOICE NO.${data.invoiceNumber}`;
+  doc.text(invoiceNumStr, 20, 34);
 
-  // Totals Section
-  const finalY = (doc as any).lastAutoTable.finalY + 8;
-  const rightColX = 140;
+  // Top Divider Line
+  doc.setLineWidth(0.35);
+  doc.line(20, 38, 190, 38);
 
+  // ISSUED TO & Issued Date section
+  let y = 47;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9.5);
+  doc.text("ISSUED TO :", 20, y);
+
+  // Issued Date right aligned
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.setTextColor(...grayText);
-  doc.text("Subtotal:", rightColX, finalY);
-  doc.text(`${data.currency} ${data.subtotal.toLocaleString()}`, 196, finalY, { align: "right" });
+  doc.text(`Issued Date   :    ${formattedDate}`, 190, y, { align: "right" });
 
-  let curY = finalY + 5;
-  if (data.discount > 0) {
-    doc.text("Discount:", rightColX, curY);
-    doc.text(`- ${data.currency} ${data.discount.toLocaleString()}`, 196, curY, { align: "right" });
-    curY += 5;
-  }
-
-  if (data.tax > 0) {
-    doc.text("Tax / GST:", rightColX, curY);
-    doc.text(`${data.currency} ${data.tax.toLocaleString()}`, 196, curY, { align: "right" });
-    curY += 5;
-  }
-
-  // Divider
-  doc.setDrawColor(226, 232, 240);
-  doc.line(rightColX, curY, 196, curY);
-  curY += 6;
-
-  // Grand Total
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.setTextColor(...primaryColor);
-  doc.text("Total Amount:", rightColX, curY);
-  doc.text(`${data.currency} ${data.totalAmount.toLocaleString()}`, 196, curY, { align: "right" });
-
-  curY += 6;
+  y += 5.5;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.setTextColor(22, 163, 74);
-  doc.text("Amount Paid:", rightColX, curY);
-  doc.text(`${data.currency} ${data.paidAmount.toLocaleString()}`, 196, curY, { align: "right" });
 
-  curY += 6;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  if (balanceDue > 0) {
-    doc.setTextColor(220, 38, 38);
-  } else {
-    doc.setTextColor(22, 163, 74);
+  if (data.client.contactPerson) {
+    doc.text(data.client.contactPerson, 20, y);
+    y += 4.5;
   }
-  doc.text("Balance Due:", rightColX, curY);
-  doc.text(`${data.currency} ${balanceDue.toLocaleString()}`, 196, curY, { align: "right" });
+  doc.text(data.client.businessName, 20, y);
+  y += 4.5;
 
-  // Notes and Terms
-  let bottomY = finalY;
+  if (data.client.phone) {
+    doc.text(data.client.phone, 20, y);
+    y += 4.5;
+  }
+  if (data.client.email) {
+    doc.text(data.client.email, 20, y);
+    y += 4.5;
+  }
+
+  // Table Section Header
+  const tableStartY = Math.max(y + 8, 80);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9.5);
+  doc.text("DESCRIPTION", 20, tableStartY);
+  doc.text("PRICE", 190, tableStartY, { align: "right" });
+
+  doc.setLineWidth(0.35);
+  doc.line(20, tableStartY + 2.5, 190, tableStartY + 2.5);
+
+  let rowY = tableStartY + 8;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9.5);
+
+  // Line items if provided
+  if (data.items && data.items.length > 0) {
+    data.items.forEach((item) => {
+      const qtyLabel = item.quantity > 1 ? ` (${item.quantity}x)` : "";
+      doc.text(`${item.description}${qtyLabel}`, 20, rowY);
+      doc.text(`PKR ${item.amount.toLocaleString()}`, 190, rowY, { align: "right" });
+      rowY += 6.5;
+    });
+  }
+
+  // Summary Rows: Total Amount, Amount Paid, Remaining Balance
+  doc.text("Total Amount", 20, rowY);
+  doc.text(`PKR ${data.totalAmount.toLocaleString()}`, 190, rowY, { align: "right" });
+  rowY += 6.5;
+
+  const paidFormatted =
+    data.paidAmount > 0
+      ? `PKR ${data.paidAmount.toLocaleString()}`
+      : "PKR 00,000";
+  doc.text("Amount Paid", 20, rowY);
+  doc.text(paidFormatted, 190, rowY, { align: "right" });
+  rowY += 6.5;
+
+  const remainingFormatted =
+    balanceDue > 0
+      ? `PKR ${balanceDue.toLocaleString()}`
+      : "PKR 00,000";
+  doc.text("Remaining Balance", 20, rowY);
+  doc.text(remainingFormatted, 190, rowY, { align: "right" });
+  rowY += 10;
+
+  // Divider Line before Total
+  doc.setLineWidth(0.35);
+  doc.line(20, rowY, 190, rowY);
+  rowY += 7;
+
+  // Total summary on right
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10.5);
+  doc.text("Total", 145, rowY);
+  doc.text(`PKR ${data.totalAmount.toLocaleString()}`, 190, rowY, { align: "right" });
+
+  // Underline under Total
+  rowY += 2.5;
+  doc.setLineWidth(0.35);
+  doc.line(135, rowY, 190, rowY);
+
+  // TERMS & CONDITIONS (Bottom Left)
+  const termsY = 240;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
-  doc.setTextColor(...primaryColor);
-  doc.text("Payment Terms & Bank Details:", 14, bottomY);
-  bottomY += 5;
+  doc.text("TERMS & CONDITIONS:", 20, termsY);
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8.5);
-  doc.setTextColor(...grayText);
-  doc.text(data.paymentTerms || "Please transfer to official Vertexia account within due date.", 14, bottomY);
-  bottomY += 4;
-  doc.text("Accepted: Bank Alfalah / Meezan Bank / JazzCash / Easypaisa", 14, bottomY);
-
-  if (data.notes) {
-    bottomY += 6;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(...primaryColor);
-    doc.text("Customer Notes:", 14, bottomY);
-    bottomY += 4;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.5);
-    doc.setTextColor(...grayText);
-    doc.text(data.notes, 14, bottomY);
-  }
-
-  // Footer
-  doc.setFillColor(248, 250, 252);
-  doc.rect(0, 280, 210, 17, "F");
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.setTextColor(148, 163, 184);
-  doc.text("Vertexia OS — Confidential Internal Commercial Invoice", 105, 287, { align: "center" });
-  doc.text("Generated by Vertexia OS • One Platform. Complete Business Control.", 105, 292, { align: "center" });
+  doc.text(
+    "For our Terms, Conditions, and Service Policies, please visit our official Terms of Services page.",
+    20,
+    termsY + 4.5
+  );
+  doc.text("www.vertexiaagency.com/terms-of-services", 20, termsY + 9);
+
+  // Bottom Right: THANK YOU FOR CHOOSING VERTEXIA
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text("THANK YOU FOR CHOOSING VERTEXIA", 190, 260, { align: "right" });
 
   return doc;
 }

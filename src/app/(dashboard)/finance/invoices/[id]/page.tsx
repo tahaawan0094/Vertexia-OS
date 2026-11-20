@@ -4,27 +4,29 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  Receipt,
   Download,
+  Printer,
   CreditCard,
-  Building2,
-  Calendar,
-  CheckCircle2,
-  AlertCircle,
-  FileText,
-  DollarSign,
-  ArrowRight,
-  ShieldCheck,
   Ban,
   Trash2,
+  AlertCircle,
+  ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { Input, Select, Textarea } from "@/components/ui/input";
-import { formatPKR, formatDate } from "@/lib/utils";
+import { formatPKR } from "@/lib/utils";
 import { generateInvoicePDF } from "@/lib/pdf-invoice";
+
+const formatInvoiceDate = (date: string | Date) => {
+  const d = new Date(date);
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+};
 
 export default function InvoiceDetailPage() {
   const params = useParams();
@@ -99,6 +101,10 @@ export default function InvoiceDetailPage() {
     doc.save(`${invoice.invoiceNumber}.pdf`);
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   const handleRecordPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     setPayError("");
@@ -109,11 +115,10 @@ export default function InvoiceDetailPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          clientId: invoice.clientId,
           invoiceId: invoice.id,
           amount: Number(payAmount),
           paymentMethod: payMethod,
-          referenceNo: payRef,
+          referenceNumber: payRef,
           notes: payNotes,
         }),
       });
@@ -122,6 +127,8 @@ export default function InvoiceDetailPage() {
       if (!res.ok) throw new Error(data.error || "Failed to record payment");
 
       setPayModalOpen(false);
+      setPayRef("");
+      setPayNotes("");
       fetchInvoice();
     } catch (err: any) {
       setPayError(err.message);
@@ -131,13 +138,15 @@ export default function InvoiceDetailPage() {
   };
 
   const handleCancelInvoice = async () => {
-    if (!confirm("Are you sure you want to cancel this invoice? This will be recorded in audit logs.")) return;
+    if (!window.confirm("Are you sure you want to cancel this invoice?")) return;
+
     try {
       const res = await fetch(`/api/finance/invoices/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "CANCELLED" }),
       });
+
       if (res.ok) fetchInvoice();
     } catch (err) {
       console.error("Failed to cancel invoice:", err);
@@ -145,8 +154,11 @@ export default function InvoiceDetailPage() {
   };
 
   const handleDeleteInvoice = async () => {
-    if (!invoice) return;
-    if (!window.confirm(`Are you sure you want to permanently delete invoice ${invoice.invoiceNumber}? This cannot be undone.`)) {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete invoice ${invoice.invoiceNumber}? This action cannot be undone.`
+      )
+    ) {
       return;
     }
 
@@ -170,200 +182,235 @@ export default function InvoiceDetailPage() {
   if (!invoice) return null;
 
   const balanceDue = Math.max(0, invoice.totalAmount - invoice.paidAmount);
+  const invoiceNumStr = invoice.invoiceNumber.startsWith("INV-")
+    ? `INVOICE NO.${invoice.invoiceNumber.replace(/^INV-0*/i, "")}`
+    : `INVOICE NO.${invoice.invoiceNumber}`;
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link
-          href="/finance/invoices"
-          className="text-xs font-semibold text-slate-500 hover:text-blue-600 flex items-center gap-1"
-        >
-          ← Back to Invoices
-        </Link>
-      </div>
-
-      {/* Action Header Banner */}
-      <div className="bg-white p-6 rounded-xl border border-slate-200/90 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Navigation & Controls Banner (Hidden in Print) */}
+      <div className="no-print space-y-4">
         <div>
+          <Link
+            href="/finance/invoices"
+            className="text-xs font-semibold text-slate-500 hover:text-blue-600 inline-flex items-center gap-1.5 transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back to Invoices</span>
+          </Link>
+        </div>
+
+        <div className="bg-white p-5 rounded-xl border border-slate-200/90 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+            <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-md bg-slate-100 text-slate-800">
               {invoice.invoiceNumber}
             </span>
-            <h1 className="text-2xl font-bold font-heading text-slate-900 tracking-tight">
+            <h1 className="text-xl font-bold font-heading text-slate-900 tracking-tight">
               {invoice.client.businessName}
             </h1>
             <StatusBadge status={invoice.status} />
           </div>
-          <div className="text-xs text-slate-500 flex flex-wrap items-center gap-3 mt-2">
-            <span>Issued: {formatDate(invoice.issueDate)}</span>
-            <span>•</span>
-            <span>Due Date: {formatDate(invoice.dueDate)}</span>
-            <span>•</span>
-            <span>Client Code: <strong className="font-mono text-slate-700">{invoice.client.clientCode}</strong></span>
+
+          <div className="flex items-center flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={handlePrint}>
+              <Printer className="w-3.5 h-3.5 mr-1" />
+              <span>Print Invoice</span>
+            </Button>
+
+            <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
+              <Download className="w-3.5 h-3.5 mr-1" />
+              <span>Download PDF</span>
+            </Button>
+
+            {invoice.status !== "PAID" && invoice.status !== "CANCELLED" && (
+              <Button size="sm" onClick={() => setPayModalOpen(true)}>
+                <CreditCard className="w-3.5 h-3.5 mr-1" />
+                <span>Record Payment</span>
+              </Button>
+            )}
+
+            {invoice.status !== "PAID" && invoice.status !== "CANCELLED" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCancelInvoice}
+                className="text-rose-600 hover:bg-rose-50 hover:border-rose-200"
+              >
+                <Ban className="w-3.5 h-3.5 mr-1" />
+                <span>Cancel</span>
+              </Button>
+            )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDeleteInvoice}
+              className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 hover:border-rose-300"
+            >
+              <Trash2 className="w-3.5 h-3.5 mr-1" />
+              <span>Delete</span>
+            </Button>
           </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDeleteInvoice}
-            className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 hover:border-rose-300"
-          >
-            <Trash2 className="w-3.5 h-3.5 mr-1" />
-            <span>Delete</span>
-          </Button>
-
-          <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
-            <Download className="w-3.5 h-3.5 mr-1" />
-            <span>Download Official PDF</span>
-          </Button>
-
-          {invoice.status !== "PAID" && invoice.status !== "CANCELLED" && (
-            <Button size="sm" onClick={() => setPayModalOpen(true)}>
-              <CreditCard className="w-3.5 h-3.5 mr-1" />
-              <span>Record Payment</span>
-            </Button>
-          )}
-
-          {invoice.status !== "PAID" && invoice.status !== "CANCELLED" && (
-            <Button variant="outline" size="sm" onClick={handleCancelInvoice} className="text-rose-600 hover:bg-rose-50">
-              <Ban className="w-3.5 h-3.5 mr-1" />
-              <span>Cancel</span>
-            </Button>
-          )}
         </div>
       </div>
 
-      {/* Invoice Document Visual Display */}
-      <div className="max-w-4xl mx-auto bg-white rounded-xl border border-slate-200 shadow-lg p-8 space-y-6">
-        {/* Brand Document Header */}
-        <div className="flex items-start justify-between pb-6 border-b border-slate-200">
+      {/* Invoice Document Visual Display — Exact match to the user-provided design */}
+      <div className="max-w-[760px] mx-auto bg-white border-[1.5px] border-black rounded-[14px] p-8 sm:p-14 text-black shadow-lg print:shadow-none print:border-black print:p-8 print:max-w-none print:m-0">
+        {/* Header: INVOICE and ArrowDownLeft Icon */}
+        <div className="flex justify-between items-start">
           <div>
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded bg-blue-600 flex items-center justify-center font-bold text-white text-sm">
-                V
-              </div>
-              <span className="font-heading font-bold text-lg text-slate-900">
-                VERTEXIA <span className="text-blue-600">OS</span>
+            <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-black leading-none">
+              INVOICE
+            </h1>
+            <p className="text-xs sm:text-sm font-bold tracking-wider text-black mt-3 uppercase">
+              {invoiceNumStr}
+            </p>
+          </div>
+
+          {/* Top-Right Arrow Mark */}
+          <div className="pt-1">
+            <svg
+              className="w-8 h-8 text-black"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="17" y1="7" x2="7" y2="17"></line>
+              <polyline points="17 17 7 17 7 7"></polyline>
+            </svg>
+          </div>
+        </div>
+
+        {/* Top Divider */}
+        <div className="border-b-[1.5px] border-black my-5" />
+
+        {/* ISSUED TO & Issued Date */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm text-black">
+          <div className="space-y-1">
+            <span className="font-bold text-xs uppercase tracking-wide text-black block mb-2">
+              ISSUED TO :
+            </span>
+            {invoice.client.contactPerson && (
+              <p className="font-normal text-black">{invoice.client.contactPerson}</p>
+            )}
+            <p className="font-normal text-black">{invoice.client.businessName}</p>
+            {invoice.client.phone && (
+              <p className="font-normal text-black">{invoice.client.phone}</p>
+            )}
+            {invoice.client.email && (
+              <p className="font-normal text-black">{invoice.client.email}</p>
+            )}
+          </div>
+
+          <div className="flex sm:justify-end items-start gap-3">
+            <span className="font-medium text-black">Issued Date</span>
+            <span className="text-black">:</span>
+            <span className="font-medium text-black">{formatInvoiceDate(invoice.issueDate)}</span>
+          </div>
+        </div>
+
+        {/* Main Table: DESCRIPTION & PRICE */}
+        <div className="mt-8">
+          <div className="flex justify-between items-center pb-2.5 border-b-[1.5px] border-black text-xs font-bold uppercase tracking-wider text-black">
+            <span>DESCRIPTION</span>
+            <span>PRICE</span>
+          </div>
+
+          {/* Optional itemized rows if present */}
+          {invoice.items && invoice.items.length > 0 && (
+            <div className="divide-y divide-slate-100 border-b border-slate-200">
+              {invoice.items.map((item: any, idx: number) => (
+                <div
+                  key={idx}
+                  className="flex justify-between items-center py-3 text-xs sm:text-sm text-black"
+                >
+                  <span className="font-normal">
+                    {item.description}
+                    {item.quantity > 1 && (
+                      <span className="text-xs text-slate-500"> ({item.quantity}x)</span>
+                    )}
+                  </span>
+                  <span className="font-medium">
+                    PKR {Number(item.amount).toLocaleString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Core breakdown matching invoice template: Total Amount, Amount Paid, Remaining Balance */}
+          <div className="space-y-4 py-4 text-xs sm:text-sm text-black">
+            <div className="flex justify-between items-center">
+              <span className="font-normal">Total Amount</span>
+              <span className="font-medium">
+                PKR {Number(invoice.totalAmount).toLocaleString()}
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-1">Vertexia Software Company • Karachi, Pakistan</p>
-            <p className="text-xs text-slate-400">contact@vertexia.pk • https://vertexia.pk</p>
-          </div>
-
-          <div className="text-right">
-            <span className="text-2xl font-bold font-heading text-slate-900 block">INVOICE</span>
-            <span className="text-xs font-mono font-bold text-slate-500">{invoice.invoiceNumber}</span>
-          </div>
-        </div>
-
-        {/* Bill To & Meta */}
-        <div className="grid grid-cols-2 gap-4 text-xs">
-          <div>
-            <span className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Billed To</span>
-            <strong className="text-sm text-slate-900 block">{invoice.client.businessName}</strong>
-            <span className="text-slate-600 block">{invoice.client.contactPerson}</span>
-            <span className="text-slate-500 block">{invoice.client.address}, {invoice.client.city}</span>
-            <span className="text-slate-500 font-mono block">{invoice.client.phone}</span>
-          </div>
-
-          <div className="text-right space-y-1">
-            <div>
-              <span className="text-slate-400">Issue Date: </span>
-              <strong className="text-slate-800">{formatDate(invoice.issueDate)}</strong>
+            <div className="flex justify-between items-center">
+              <span className="font-normal">Amount Paid</span>
+              <span className="font-medium">
+                PKR{" "}
+                {invoice.paidAmount > 0
+                  ? Number(invoice.paidAmount).toLocaleString()
+                  : "00,000"}
+              </span>
             </div>
-            <div>
-              <span className="text-slate-400">Due Date: </span>
-              <strong className="text-slate-800">{formatDate(invoice.dueDate)}</strong>
-            </div>
-            <div>
-              <span className="text-slate-400">Status: </span>
-              <StatusBadge status={invoice.status} />
-            </div>
-            <div className="pt-1">
-              <span className="text-slate-400">Balance Due: </span>
-              <strong className="text-sm font-bold text-rose-600 font-mono">
-                {formatPKR(balanceDue)}
-              </strong>
+            <div className="flex justify-between items-center">
+              <span className="font-normal">Remaining Balance</span>
+              <span className="font-medium">
+                PKR{" "}
+                {balanceDue > 0
+                  ? Number(balanceDue).toLocaleString()
+                  : "00,000"}
+              </span>
             </div>
           </div>
-        </div>
 
-        {/* Line Items Table */}
-        <div className="border border-slate-200 rounded-lg overflow-hidden">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase">
-              <tr>
-                <th className="py-2.5 px-3">Description</th>
-                <th className="py-2.5 px-3 text-center">Qty</th>
-                <th className="py-2.5 px-3 text-right">Unit Price</th>
-                <th className="py-2.5 px-3 text-right">Amount</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {invoice.items.map((item: any) => (
-                <tr key={item.id}>
-                  <td className="py-2.5 px-3 text-slate-800 font-medium">{item.description}</td>
-                  <td className="py-2.5 px-3 text-center text-slate-600">{item.quantity}</td>
-                  <td className="py-2.5 px-3 text-right text-slate-700 font-mono">{formatPKR(item.unitPrice)}</td>
-                  <td className="py-2.5 px-3 text-right font-bold text-slate-900 font-mono">{formatPKR(item.amount)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          {/* Divider Line before Total */}
+          <div className="border-b-[1.5px] border-black my-6 sm:my-8" />
 
-        {/* Totals Section */}
-        <div className="flex justify-end text-xs">
-          <div className="w-64 space-y-2">
-            <div className="flex justify-between text-slate-600">
-              <span>Subtotal:</span>
-              <span className="font-mono">{formatPKR(invoice.subtotal)}</span>
-            </div>
-            {invoice.discount > 0 && (
-              <div className="flex justify-between text-slate-600">
-                <span>Discount:</span>
-                <span className="font-mono text-emerald-700">- {formatPKR(invoice.discount)}</span>
+          {/* Right-aligned Total with underline */}
+          <div className="flex justify-end">
+            <div className="w-56 sm:w-72">
+              <div className="flex justify-between items-center font-bold text-xs sm:text-sm text-black pb-2 border-b-[1.5px] border-black">
+                <span>Total</span>
+                <span>PKR {Number(invoice.totalAmount).toLocaleString()}</span>
               </div>
-            )}
-            {invoice.tax > 0 && (
-              <div className="flex justify-between text-slate-600">
-                <span>Tax / GST:</span>
-                <span className="font-mono">{formatPKR(invoice.tax)}</span>
-              </div>
-            )}
-            <div className="pt-2 border-t border-slate-200 flex justify-between font-bold text-sm text-slate-900">
-              <span>Total Amount:</span>
-              <span className="font-mono">{formatPKR(invoice.totalAmount)}</span>
-            </div>
-            <div className="flex justify-between font-bold text-xs text-emerald-700">
-              <span>Amount Paid:</span>
-              <span className="font-mono">{formatPKR(invoice.paidAmount)}</span>
-            </div>
-            <div className="flex justify-between font-bold text-xs text-rose-600 pt-1 border-t border-slate-100">
-              <span>Balance Due:</span>
-              <span className="font-mono">{formatPKR(balanceDue)}</span>
             </div>
           </div>
         </div>
 
-        {/* Payment Terms & Notes */}
-        <div className="pt-4 border-t border-slate-100 text-xs text-slate-600 space-y-1">
-          <div>
-            <strong className="text-slate-800">Payment Terms: </strong>
-            <span>{invoice.paymentTerms || "Due on receipt"}</span>
+        {/* Footer: TERMS & CONDITIONS + THANK YOU FOR CHOOSING VERTEXIA */}
+        <div className="mt-14 sm:mt-20 space-y-8">
+          <div className="space-y-1 max-w-md">
+            <span className="font-bold text-xs uppercase tracking-wide text-black block">
+              TERMS & CONDITIONS:
+            </span>
+            <p className="text-[11px] sm:text-xs text-black font-normal leading-relaxed">
+              For our Terms, Conditions, and Service Policies, please visit our official Terms of Services page.
+            </p>
+            <a
+              href="https://www.vertexiaagency.com/terms-of-services"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] sm:text-xs text-black underline font-medium block hover:opacity-80"
+            >
+              www.vertexiaagency.com/terms-of-services
+            </a>
           </div>
-          {invoice.notes && (
-            <div>
-              <strong className="text-slate-800">Bank Details / Notes: </strong>
-              <span>{invoice.notes}</span>
-            </div>
-          )}
+
+          <div className="flex justify-end">
+            <span className="font-bold text-xs sm:text-sm tracking-wider uppercase text-black">
+              THANK YOU FOR CHOOSING VERTEXIA
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Record Payment Modal (Workflow C) */}
+      {/* Record Payment Modal */}
       <Modal
         isOpen={payModalOpen}
         onClose={() => setPayModalOpen(false)}
